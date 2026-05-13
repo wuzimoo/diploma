@@ -16,5 +16,7 @@ coverage/
 *.log
 *.tsbuildinfo
 .vercel/
+playwright-report/
+test-results/
 .idea/
 .vscode/

@@ -18,3 +18,12 @@ Set `VITE_API_URL` to the deployed backend API URL, for example:
 ```env
 VITE_API_URL=https://romans-erp-api.onrender.com/api
 ```
+
+## E2E Tests
+
+```bash
+npm run test:e2e
+npm run test:e2e:report
+```
+
+The Playwright suite mocks REST API responses in the browser and checks the actual React UI flows for worker and admin screens.

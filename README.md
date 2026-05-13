@@ -58,6 +58,20 @@ npm run dev
 
 Frontend URL: `http://localhost:5173`.
 
+## Tests And CI
+
+Frontend e2e tests cover login, worker mobile flow, daily report creation, calendar, logout, admin dashboard, report filters, report approval, employees and objects pages:
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+CI is configured in `.github/workflows/ci.yml`:
+
+- backend job installs dependencies, runs Alembic migrations on a smoke database, seeds demo data and imports the FastAPI app;
+- frontend job runs `npm ci`, `npm run build`, installs Playwright Chromium and uploads HTML reports/traces on failures.
+
 ## Demo Logins
 
 - Admin: `admin@romans-erp.demo` / `Admin12345`
