@@ -35,3 +35,7 @@ Deploy the `frontend` directory.
 
 After Vercel deploys, update Render `CORS_ORIGINS` with the final Vercel URL.
 
+Current Vercel deployment:
+
+- https://frontend-41zkeu9x3-daniils-projects-5bff5a67.vercel.app
+- Alias: https://frontend-three-kappa-60.vercel.app

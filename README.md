@@ -82,6 +82,6 @@ After deploying frontend, update Render `CORS_ORIGINS` to include the Vercel URL
 ## Links
 
 - GitHub: https://github.com/wuzimoo/diploma.git
-- Vercel: pending deployment
-- Render: pending deployment
-
+- Vercel: https://frontend-41zkeu9x3-daniils-projects-5bff5a67.vercel.app
+- Vercel alias: https://frontend-three-kappa-60.vercel.app
+- Render: pending account/API access. Blueprint is ready in `render.yaml`; expected API URL after service creation is `https://romans-erp-api.onrender.com/api`.
