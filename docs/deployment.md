@@ -1,28 +1,43 @@
 # Deployment
 
-## Render Backend
+## Railway Backend
 
-The repository includes `render.yaml` for a Render Blueprint.
+The backend is deployed to Railway as the API service.
 
-Render service:
+Railway monorepo service settings:
 
-- Runtime: Python
-- Root directory: `backend`
-- Build command: `pip install -r requirements.txt && alembic upgrade head`
+- Source: `https://github.com/wuzimoo/diploma.git`
+- Root Directory: `/backend`
+- Config file path: `/backend/railway.json`
+- Builder: Railpack
+- Build command: `pip install -r requirements.txt`
+- Pre-deploy command: `alembic upgrade head`
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Healthcheck path: `/api/health`
 
-Required env vars:
+Add PostgreSQL in the same Railway project. Railway's PostgreSQL service exposes `DATABASE_URL`, which the FastAPI service uses directly.
 
-- `DATABASE_URL`
-- `SECRET_KEY`
-- `ACCESS_TOKEN_EXPIRE_MINUTES`
-- `CORS_ORIGINS`
-- `ENVIRONMENT`
+Required API variables:
 
-After the service is created, run the seed command once from a Render shell or one-off job:
+```env
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=<secure-random-secret>
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+CORS_ORIGINS=https://frontend-41zkeu9x3-daniils-projects-5bff5a67.vercel.app,https://frontend-three-kappa-60.vercel.app,http://localhost:5173
+ENVIRONMENT=production
+```
+
+Seed demo data once after the first successful migration:
 
 ```bash
-python -m app.db.seed
+cd backend
+railway run python -m app.db.seed
+```
+
+Public API URL after Railway domain generation:
+
+```text
+https://<railway-backend-domain>/api
 ```
 
 ## Vercel Frontend
@@ -31,9 +46,7 @@ Deploy the `frontend` directory.
 
 - Build command: `npm run build`
 - Output directory: `dist`
-- Env var: `VITE_API_URL=https://<render-service-url>/api`
-
-After Vercel deploys, update Render `CORS_ORIGINS` with the final Vercel URL.
+- Env var: `VITE_API_URL=https://<railway-backend-domain>/api`
 
 Current Vercel deployment:
 

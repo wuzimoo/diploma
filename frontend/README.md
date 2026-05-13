@@ -16,7 +16,7 @@ Default URL: `http://localhost:5173`.
 Set `VITE_API_URL` to the deployed backend API URL, for example:
 
 ```env
-VITE_API_URL=https://romans-erp-api.onrender.com/api
+VITE_API_URL=https://<railway-backend-domain>/api
 ```
 
 ## E2E Tests

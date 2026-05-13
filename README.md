@@ -7,7 +7,7 @@
 - Backend: Python, FastAPI, SQLAlchemy, Alembic, Pydantic, JWT
 - Database: PostgreSQL
 - Frontend: React, Vite, React Router, Axios, TypeScript
-- Deploy: Render для backend, Vercel для frontend
+- Deploy: Railway для backend, Vercel для frontend
 
 ## Architecture
 
@@ -17,7 +17,7 @@ Monorepo:
 backend/   FastAPI REST API, SQLAlchemy models, Alembic migrations, seed data
 frontend/  React/Vite UI for worker mobile flow and foreman/admin web flow
 docs/      architecture, modules, API, database and deployment documentation
-render.yaml Render Blueprint for API + PostgreSQL
+backend/railway.json Railway config-as-code for API deploy
 ```
 
 ## Local PostgreSQL
@@ -80,22 +80,42 @@ CI is configured in `.github/workflows/ci.yml`:
 
 ## Deployment
 
-Render uses `render.yaml` and provisions:
+Railway hosts the backend API and PostgreSQL. Deploy the backend service from the GitHub repository with these settings:
 
-- `romans-erp-api` Python web service
-- `romans-erp-db` PostgreSQL database
+- Root Directory: `/backend`
+- Config file: `/backend/railway.json`
+- Start command: defined in `backend/railway.json`
+- Pre-deploy migration command: `alembic upgrade head`
+
+Add a Railway PostgreSQL service to the same project. Railway exposes `DATABASE_URL` automatically to services in the project.
+
+Required Railway backend variables:
+
+```env
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+SECRET_KEY=<secure-random-secret>
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+CORS_ORIGINS=https://frontend-41zkeu9x3-daniils-projects-5bff5a67.vercel.app,https://frontend-three-kappa-60.vercel.app,http://localhost:5173
+ENVIRONMENT=production
+```
+
+Seed Railway demo data once after the database is attached and migrations have run:
+
+```bash
+railway run python -m app.db.seed
+```
 
 Vercel deploys `frontend` with:
 
 - Build command: `npm run build`
 - Output directory: `dist`
-- Env var: `VITE_API_URL=https://<render-service>/api`
+- Env var: `VITE_API_URL=https://<railway-backend-domain>/api`
 
-After deploying frontend, update Render `CORS_ORIGINS` to include the Vercel URL.
+After Railway generates a public domain for the backend, update Vercel `VITE_API_URL` and redeploy the frontend.
 
 ## Links
 
 - GitHub: https://github.com/wuzimoo/diploma.git
 - Vercel: https://frontend-41zkeu9x3-daniils-projects-5bff5a67.vercel.app
 - Vercel alias: https://frontend-three-kappa-60.vercel.app
-- Render: pending account/API access. Blueprint is ready in `render.yaml`; expected API URL after service creation is `https://romans-erp-api.onrender.com/api`.
+- Railway backend: pending Railway public domain. Set Vercel `VITE_API_URL` to `https://<railway-backend-domain>/api`.

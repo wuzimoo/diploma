@@ -27,5 +27,4 @@ JWT is stored in localStorage for MVP simplicity. Axios attaches the bearer toke
 
 ## Deployment
 
-Render hosts the API and PostgreSQL. Vercel hosts the static React build. CORS is controlled by backend `CORS_ORIGINS`.
-
+Railway hosts the API and PostgreSQL. Vercel hosts the static React build. CORS is controlled by backend `CORS_ORIGINS`.
