@@ -17,12 +17,13 @@ uvicorn app.main:app --reload
 
 API docs: `http://localhost:8000/docs`.
 
-## Railway
+## Render
 
-The repository root contains `railway.json`. Railway starts the backend with:
+The repository root contains `render.yaml`. Render runs the backend from `backend/` with:
 
 ```bash
-cd backend && alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+pip install -r requirements.txt
+alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
 ## Demo Users
