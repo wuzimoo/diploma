@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { Plus, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
@@ -10,6 +11,7 @@ export function CrewsPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [objects, setObjects] = useState<ConstructionObject[]>([]);
   const [form, setForm] = useState({ name: "", specialization: "Електромонтаж", foreman_employee_id: "", current_object_id: "" });
+  const [pickerCrewId, setPickerCrewId] = useState<number | null>(null);
 
   function load() {
     Promise.all([api.get<Crew[]>("/crews"), api.get<Employee[]>("/employees"), api.get<ConstructionObject[]>("/objects")]).then(([crewResponse, employeeResponse, objectResponse]) => {
@@ -37,6 +39,7 @@ export function CrewsPage() {
 
   async function addMember(crewId: number, employeeId: number) {
     await api.post("/crew-members", { crew_id: crewId, employee_id: employeeId, role_in_crew: "Працівник", joined_at: "2026-05-29", is_active: true });
+    setPickerCrewId(null);
     load();
   }
 
@@ -66,10 +69,30 @@ export function CrewsPage() {
             <div className="member-list">
               {crew.members.map((member) => <span key={member.id}>{member.employee?.first_name} {member.employee?.last_name} · {member.role_in_crew}</span>)}
             </div>
-            <label className="field">Додати працівника<select onChange={(event) => event.target.value && addMember(crew.id, Number(event.target.value))} defaultValue="">
-              <option value="">Обрати</option>
-              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}
-            </select></label>
+            <div className="crew-card-actions">
+              <span className="crew-members-label">Склад бригади</span>
+              <button className="icon-btn" type="button" aria-label="Додати працівника" onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
+                {pickerCrewId === crew.id ? <X size={18} /> : <Plus size={18} />}
+              </button>
+            </div>
+            {pickerCrewId === crew.id ? (
+              <div className="member-picker">
+                <strong>Додати працівника</strong>
+                <div className="member-picker-grid">
+                  {employees
+                    .filter((employee) => !crew.members.some((member) => member.employee_id === employee.id))
+                    .map((employee) => (
+                      <button className="member-picker-card" key={employee.id} type="button" onClick={() => addMember(crew.id, employee.id)}>
+                        <strong>{employee.first_name} {employee.last_name}</strong>
+                        <span>{employee.position}</span>
+                      </button>
+                    ))}
+                  {employees.filter((employee) => !crew.members.some((member) => member.employee_id === employee.id)).length === 0 ? (
+                    <p className="helper">Усі доступні працівники вже додані до цієї бригади.</p>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </article>
         ))}
       </div>

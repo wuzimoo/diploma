@@ -51,8 +51,10 @@ export function EmployeesPage() {
         <div className="cards-grid">
           {employees.map((employee) => (
             <article className="entity-card employee-card" key={employee.id}>
-              <strong>{employee.first_name} {employee.last_name}</strong>
-              <span>{employee.position}</span>
+              <div className="employee-card-header">
+                <strong>{employee.first_name} {employee.last_name}</strong>
+                <span className="employee-card-role">{employee.position}</span>
+              </div>
               <p>{employee.phone || "Телефон не вказано"}</p>
               <small>EUR {employee.hourly_rate}/h · {employee.status}</small>
             </article>
