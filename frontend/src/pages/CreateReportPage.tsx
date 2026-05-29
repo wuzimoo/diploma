@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useToast } from "../hooks/useToast";
 import { api } from "../services/api";
 import { ActiveAssignment } from "../types/api";
 
@@ -12,10 +13,12 @@ function hours(start: string, end: string, pause: number) {
 
 export function CreateReportPage() {
   const navigate = useNavigate();
+  const { pushToast } = useToast();
   const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
-    report_date: "2026-05-13",
+    report_date: new Date().toISOString().slice(0, 10),
     work_plan_item_id: "",
     start_time: "08:00",
     end_time: "16:30",
@@ -34,6 +37,31 @@ export function CreateReportPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!form.work_description.trim() || form.work_description.trim().length < 5) {
+      setFormError("Додайте змістовний опис робіт щонайменше з 5 символів.");
+      return;
+    }
+    if (!form.completed_volume) {
+      setFormError("Вкажіть виконаний обсяг.");
+      return;
+    }
+    if (Number(form.completed_volume) <= 0) {
+      setFormError("Виконаний обсяг має бути більшим за 0.");
+      return;
+    }
+    if (form.end_time <= form.start_time) {
+      setFormError("Час завершення має бути пізнішим за час початку.");
+      return;
+    }
+    if (form.break_minutes < 0) {
+      setFormError("Перерва не може бути від'ємною.");
+      return;
+    }
+    if (workedHours <= 0) {
+      setFormError("Робочий час повинен бути більшим за 0 годин.");
+      return;
+    }
+    setFormError("");
     const response = await api.post("/daily-reports", {
       ...form,
       construction_object_id: activeAssignment?.construction_object?.id,
@@ -50,6 +78,7 @@ export function CreateReportPage() {
       file_url: `local-demo://${file.name}`,
       caption: "Додано працівником у формі звіту"
     })));
+    pushToast({ tone: "success", title: "Звіт створено", description: "Щоденний звіт відправлено на перевірку." });
     navigate(`/worker/reports/${response.data.id}`);
   }
 
@@ -80,6 +109,7 @@ export function CreateReportPage() {
           <label className="field">Виконаний обсяг<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="Напр.: 12.5" /></label>
           <label className="field">Опис робіт<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="Напр.: змонтовано кабельні траси, підготовлено головний щит" /></label>
           <label className="field">Фото / медіа<input type="file" accept="image/*,video/*" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Для MVP зберігається metadata файлів; у production підключається S3/Cloudinary.</span></label>
+          {formError ? <div className="form-error">{formError}</div> : null}
           {mediaFiles.length > 0 && <div className="file-list">{mediaFiles.map((file) => <span key={file.name}>{file.name}</span>)}</div>}
           <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Надіслати звіт</button>
         </form>

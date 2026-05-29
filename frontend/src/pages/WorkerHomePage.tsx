@@ -12,6 +12,7 @@ export function WorkerHomePage() {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null);
+  const today = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
 
   useEffect(() => {
     Promise.all([
@@ -29,7 +30,7 @@ export function WorkerHomePage() {
     <>
       <header className="mobile-header">
         <h1>Доброго дня, {user?.full_name.split(" ")[0]}</h1>
-        <p>Сьогодні: 13.05.2026</p>
+        <p>Сьогодні: {today}</p>
       </header>
       <main className="mobile-content">
         <Link className="btn btn-primary btn-block" to="/worker/reports/new">Створити щоденний звіт</Link>

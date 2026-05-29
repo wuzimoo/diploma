@@ -4,7 +4,10 @@ const labels: Record<string, string> = {
   approved: "Погоджено",
   rejected: "Відхилено",
   active: "Активно",
-  planning: "Планування"
+  planning: "Планування",
+  archived: "Архів",
+  done: "Завершено",
+  blocked: "Блоковано"
 };
 
 export function statusLabel(status: string) {
@@ -12,7 +15,13 @@ export function statusLabel(status: string) {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const tone = status === "approved" || status === "active" ? "success" : status === "review" ? "warning" : status === "rejected" ? "danger" : "neutral";
+  const tone =
+    status === "approved" || status === "active" || status === "done"
+      ? "success"
+      : status === "review" || status === "planning"
+        ? "warning"
+        : status === "rejected" || status === "blocked"
+          ? "danger"
+          : "neutral";
   return <span className={`badge badge-${tone}`}>{statusLabel(status)}</span>;
 }
-

@@ -4,14 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
+import { useToast } from "../hooks/useToast";
 import { api } from "../services/api";
 import { ObjectSummary, WorkPlanItem } from "../types/api";
 
 export function ObjectDetailPage() {
   const { id } = useParams();
+  const { pushToast } = useToast();
   const [summary, setSummary] = useState<ObjectSummary | null>(null);
   const [editingPlan, setEditingPlan] = useState<WorkPlanItem | null>(null);
   const [planEditorOpen, setPlanEditorOpen] = useState(false);
+  const [planError, setPlanError] = useState("");
   const [planForm, setPlanForm] = useState({
     title: "",
     description: "",
@@ -43,6 +46,7 @@ export function ObjectDetailPage() {
   function openCreatePlan() {
     setEditingPlan(null);
     setPlanEditorOpen(true);
+    setPlanError("");
     setPlanForm({
       title: "",
       description: "",
@@ -60,6 +64,7 @@ export function ObjectDetailPage() {
   function openEditPlan(item: WorkPlanItem) {
     setEditingPlan(item);
     setPlanEditorOpen(true);
+    setPlanError("");
     setPlanForm({
       title: item.title,
       description: item.description || "",
@@ -76,6 +81,23 @@ export function ObjectDetailPage() {
 
   async function savePlan(event: FormEvent) {
     event.preventDefault();
+    if (!planForm.title.trim()) {
+      setPlanError("Назва етапу обов'язкова.");
+      return;
+    }
+    if (Number(planForm.planned_volume) <= 0) {
+      setPlanError("Плановий обсяг має бути більшим за 0.");
+      return;
+    }
+    if (Number(planForm.completed_volume) < 0) {
+      setPlanError("Виконаний обсяг не може бути від'ємним.");
+      return;
+    }
+    if (planForm.planned_start && planForm.planned_end && planForm.planned_end < planForm.planned_start) {
+      setPlanError("Дата завершення етапу не може бути раніше старту.");
+      return;
+    }
+    setPlanError("");
     const payload = {
       construction_object_id: Number(id),
       crew_id: planForm.crew_id ? Number(planForm.crew_id) : null,
@@ -91,8 +113,10 @@ export function ObjectDetailPage() {
     };
     if (editingPlan) {
       await api.patch(`/work-plan-items/${editingPlan.id}`, payload);
+      pushToast({ tone: "success", title: "Етап оновлено", description: "План робіт синхронізовано." });
     } else {
       await api.post("/work-plan-items", payload);
+      pushToast({ tone: "success", title: "Етап додано", description: "Новий етап з'явився у плані робіт." });
     }
     setPlanEditorOpen(false);
     setEditingPlan(null);
@@ -184,6 +208,7 @@ export function ObjectDetailPage() {
               </select></label>
               <button className="btn btn-primary" type="submit">{editingPlan ? "Зберегти" : "Створити етап"}</button>
             </div>
+            {planError ? <div className="form-error">{planError}</div> : null}
           </form>
         ) : null}
         <div className="planner-list">

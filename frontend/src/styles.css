@@ -86,6 +86,47 @@ p {
   gap: 8px;
 }
 
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1200;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  display: grid;
+  gap: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 32px rgba(25, 30, 38, 0.12);
+  padding: 14px 16px;
+}
+
+.toast strong {
+  font-size: 0.95rem;
+}
+
+.toast span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.toast-success {
+  border-color: #b8e7c8;
+}
+
+.toast-error {
+  border-color: #f5c2bb;
+}
+
+.toast-info {
+  border-color: #d3dae7;
+}
+
 .demo-logins button,
 .link-button,
 .button-reset {
@@ -268,6 +309,13 @@ p {
   padding: 18px;
   box-shadow: var(--shadow);
   min-width: 0;
+}
+
+.compact-summary {
+  min-height: 88px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
 }
 
 .locked-assignment {
@@ -596,7 +644,8 @@ textarea {
 }
 
 .file-list span,
-.member-list span {
+.member-list span,
+.member-pill {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface-alt);
@@ -604,6 +653,31 @@ textarea {
   padding: 6px 10px;
   font-size: 0.86rem;
   font-weight: 700;
+}
+
+.member-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 6px;
+}
+
+.member-remove {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #697386;
+  cursor: pointer;
+}
+
+.member-remove:hover {
+  background: #eef1f5;
+  color: var(--danger);
 }
 
 .warning-note,
@@ -848,6 +922,48 @@ textarea {
   min-width: min(220px, 100%);
 }
 
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crew-inline-picker-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal-card {
+  width: min(720px, 100%);
+  max-height: min(88vh, 900px);
+  overflow: auto;
+  display: grid;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  padding: 20px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .calendar-board {
   display: grid;
   gap: 10px;
@@ -985,7 +1101,17 @@ textarea {
   .report-item-top,
   .crew-card-actions,
   .section-head,
-  .planner-actions {
+  .planner-actions,
+  .card-actions,
+  .modal-actions,
+  .crew-inline-picker-toggle {
     align-items: flex-start;
+  }
+
+  .toast-stack {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
   }
 }

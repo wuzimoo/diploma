@@ -10,16 +10,23 @@ export function ReportsListPage() {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState(searchParams.get("status") || "");
+  const [employee, setEmployee] = useState("");
 
   useEffect(() => {
     setStatus(searchParams.get("status") || "");
   }, [searchParams]);
 
   useEffect(() => {
-    api.get<DailyReport[]>("/daily-reports", { params: { limit: 100, status_filter: status || undefined, search: search || undefined } }).then((response) => setReports(response.data));
+    api
+      .get<DailyReport[]>("/daily-reports", { params: { limit: 100, status_filter: status || undefined, search: search || undefined } })
+      .then((response) => setReports(response.data));
   }, [search, status]);
 
   const employees = useMemo(() => Array.from(new Set(reports.map((report) => `${report.employee.first_name} ${report.employee.last_name}`))), [reports]);
+  const filteredReports = useMemo(() => {
+    if (!employee) return reports;
+    return reports.filter((report) => `${report.employee.first_name} ${report.employee.last_name}` === employee);
+  }, [employee, reports]);
 
   return (
     <section className="table-card stack">
@@ -30,13 +37,13 @@ export function ReportsListPage() {
       <div className="filters">
         <label className="field">Пошук<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Опис робіт" /></label>
         <label className="field">Статус<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Усі</option><option value="open">Відкрито</option><option value="review">На перевірці</option><option value="approved">Погоджено</option><option value="rejected">Відхилено</option></select></label>
-        <label className="field">Працівники<select><option>Усі</option>{employees.map((employee) => <option key={employee}>{employee}</option>)}</select></label>
+        <label className="field">Працівники<select value={employee} onChange={(event) => setEmployee(event.target.value)}><option value="">Усі</option>{employees.map((employeeName) => <option key={employeeName} value={employeeName}>{employeeName}</option>)}</select></label>
       </div>
       <div className="table-wrap">
         <table className="table">
           <thead><tr><th>Дата</th><th>Працівник</th><th>Об'єкт</th><th>План</th><th>Час</th><th>Години</th><th>Статус</th><th>Дії</th></tr></thead>
           <tbody>
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <tr key={report.id}>
                 <td>{report.report_date}</td>
                 <td>{report.employee.first_name} {report.employee.last_name}</td>
