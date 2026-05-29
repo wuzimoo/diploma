@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
     if (message.type() === "error") browserErrors.push(message.text());
   });
   await installMockApi(page);
-  await page.goto("/login");
+  await page.goto("/login", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Вхід до системи" })).toBeVisible();
   test.info().annotations.push({ type: "browser-errors", description: browserErrors.join("\n") });
 });
@@ -29,21 +29,28 @@ test("worker can login, navigate mobile contour, create report and logout", asyn
 
   await expect(page.getByRole("heading", { name: /Доброго дня, Markus/ })).toBeVisible();
   await expect(page.getByText("Робочі години в системі")).toBeVisible();
-  await expect(page.getByText("Berlin Mitte - Haus A")).toBeVisible();
+  await expect(page.locator(".locked-assignment strong").filter({ hasText: "Berlin Ost - Neubau C" })).toBeVisible();
+  await expect(page.getByText(/Бригада Elektro Ost/)).toBeVisible();
   await assertNoHorizontalOverflow(page);
 
   await page.getByRole("link", { name: /Звіт/ }).click();
   await expect(page.getByRole("heading", { name: "Заповнення щоденного звіту" })).toBeVisible();
+  await expect(page.getByText("Закріплений поточний об'єкт")).toBeVisible();
+  await expect(page.getByLabel("Працівник")).not.toBeVisible();
+  await page.getByLabel("План робіт").selectOption("1");
+  await page.getByLabel("Виконаний обсяг").fill("12");
   await page.getByLabel("Опис робіт").fill("Змонтовано кабельні траси, перевірено матеріали, підготовлено щит.");
   await expect(page.getByText("8.00 h")).toBeVisible();
   await page.getByRole("button", { name: "Надіслати звіт" }).click();
 
   await expect(page.getByRole("heading", { name: "DR-2026-0099" })).toBeVisible();
   await expect(page.getByText("Змонтовано кабельні траси")).toBeVisible();
+  await expect(page.getByText("Монтаж кабельних трас секція C")).toBeVisible();
 
   await page.getByRole("link", { name: /Календар/ }).click();
   await expect(page.getByRole("heading", { name: "Календар звітів" })).toBeVisible();
-  await expect(page.getByText("2026-03-21")).toBeVisible();
+  await page.getByRole("button", { name: /29/ }).click();
+  await expect(page.getByText("DR-2026-0031")).toBeVisible();
 
   await page.getByRole("link", { name: /Ще/ }).click();
   await expect(page.getByText("worker@romans-erp.demo")).toBeVisible();
@@ -62,10 +69,14 @@ test("admin can use dashboard, filters, report approval and directory pages", as
   await expect(page.getByText("Загальні витрати: EUR 1046.50")).toBeVisible();
   await assertNoHorizontalOverflow(page);
 
+  await page.getByRole("link", { name: /Berlin Ost - Neubau C/ }).first().click();
+  await expect(page.getByText("План робіт")).toBeVisible();
+  await expect(page.getByText("Бригада Elektro Ost")).toBeVisible();
+
   await page.getByRole("link", { name: /Звіти/ }).click();
   await expect(page.getByRole("heading", { name: "Список звітів" })).toBeVisible();
   await page.getByLabel("Статус").selectOption("review");
-  await expect(page.getByRole("row", { name: /Markus Meyer/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Markus Meyer/ }).first()).toBeVisible();
   await expect(page.getByText("Jonas Klein")).not.toBeVisible();
 
   await page.getByRole("link", { name: "Відкрити" }).first().click();
@@ -75,13 +86,30 @@ test("admin can use dashboard, filters, report approval and directory pages", as
 
   await page.getByRole("link", { name: /Працівники/ }).click();
   await expect(page.getByRole("heading", { name: "Працівники" })).toBeVisible();
+  await page.getByLabel("Ім'я").fill("Maksym");
+  await page.getByLabel("Прізвище").fill("Bondar");
+  await page.getByRole("button", { name: "Додати працівника" }).click();
+  await expect(page.getByText("Maksym Bondar")).toBeVisible();
   await page.getByLabel("Пошук").fill("Markus");
   await expect(page.getByText("Markus Meyer")).toBeVisible();
+
+  await page.getByRole("link", { name: /Бригади/ }).click();
+  await expect(page.getByRole("heading", { name: "Бригади" })).toBeVisible();
+  await page.getByLabel("Назва").fill("Бригада Test Berlin");
+  await page.getByRole("button", { name: "Додати бригаду" }).click();
+  await expect(page.getByText("Бригада Test Berlin")).toBeVisible();
+
+  await page.getByRole("link", { name: /Календар/ }).click();
+  await expect(page.getByText("Травень 2026")).toBeVisible();
+  await page.getByRole("button", { name: /29/ }).click();
+  await expect(page.getByText("DR-2026-0031")).toBeVisible();
 
   await page.getByRole("link", { name: /Об'єкти/ }).click();
   await expect(page.getByRole("heading", { name: "Будівельні об'єкти" })).toBeVisible();
   await expect(page.getByText("Berlin Mitte - Haus A")).toBeVisible();
   await expect(page.getByText("Potsdam - Halle 2")).toBeVisible();
+  await page.getByRole("link", { name: "Відкрити деталі" }).first().click();
+  await expect(page.getByText("Опис і строки")).toBeVisible();
 });
 
 test("login error is clear when API rejects credentials", async ({ page }) => {

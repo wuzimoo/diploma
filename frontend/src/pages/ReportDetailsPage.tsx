@@ -28,10 +28,14 @@ export function ReportDetailsPage() {
           <div className="report-item-top"><strong>{report.report_date}</strong><StatusBadge status={report.status} /></div>
           <div className="detail-grid">
             <span>Працівник</span><strong>{report.employee.first_name} {report.employee.last_name}</strong>
+            <span>Об'єкт</span><strong>{report.construction_object.name}</strong>
+            <span>План робіт</span><strong>{report.work_plan_item?.title || "Не прив'язано"}</strong>
             <span>Час</span><strong>{report.start_time.slice(0, 5)} - {report.end_time.slice(0, 5)}</strong>
             <span>Години</span><strong>{report.worked_hours.toFixed(2)} h</strong>
+            <span>Обсяг</span><strong>{report.completed_volume ? `${report.completed_volume} ${report.work_plan_item?.unit || ""}` : "не вказано"}</strong>
           </div>
           <p>{report.work_description}</p>
+          {report.media_note && <p className="helper">{report.media_note}</p>}
           {report.rejection_reason && <p className="form-error">{report.rejection_reason}</p>}
         </section>
         <section className="photo-grid">
@@ -41,4 +45,3 @@ export function ReportDetailsPage() {
     </>
   );
 }
-

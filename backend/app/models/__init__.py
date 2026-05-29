@@ -1,5 +1,7 @@
 from app.models.entities import (
     ConstructionObject,
+    Crew,
+    CrewMember,
     DailyReport,
     Employee,
     Expense,
@@ -10,10 +12,13 @@ from app.models.entities import (
     ReportPhoto,
     Role,
     User,
+    WorkPlanItem,
 )
 
 __all__ = [
     "ConstructionObject",
+    "Crew",
+    "CrewMember",
     "DailyReport",
     "Employee",
     "Expense",
@@ -24,4 +29,5 @@ __all__ = [
     "ReportPhoto",
     "Role",
     "User",
+    "WorkPlanItem",
 ]

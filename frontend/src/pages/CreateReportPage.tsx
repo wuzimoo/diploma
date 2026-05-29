@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { api } from "../services/api";
-import { ConstructionObject, Employee } from "../types/api";
+import { ActiveAssignment } from "../types/api";
 
 function hours(start: string, end: string, pause: number) {
   const [sh, sm] = start.split(":").map(Number);
@@ -12,28 +12,23 @@ function hours(start: string, end: string, pause: number) {
 
 export function CreateReportPage() {
   const navigate = useNavigate();
-  const [objects, setObjects] = useState<ConstructionObject[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     report_date: "2026-05-13",
-    construction_object_id: "",
-    employee_id: "",
+    work_plan_item_id: "",
     start_time: "08:00",
     end_time: "16:30",
     break_minutes: 30,
+    completed_volume: "",
     work_description: ""
   });
   const workedHours = useMemo(() => hours(form.start_time, form.end_time, form.break_minutes), [form]);
 
   useEffect(() => {
-    Promise.all([api.get<ConstructionObject[]>("/objects"), api.get<Employee[]>("/employees")]).then(([objectsResponse, employeesResponse]) => {
-      setObjects(objectsResponse.data);
-      setEmployees(employeesResponse.data);
-      setForm((current) => ({
-        ...current,
-        construction_object_id: String(objectsResponse.data[0]?.id || ""),
-        employee_id: String(employeesResponse.data[0]?.id || "")
-      }));
+    api.get<ActiveAssignment>("/me/active-assignment").then((response) => {
+      setActiveAssignment(response.data);
+      setForm((current) => ({ ...current, work_plan_item_id: String(response.data.work_plan_items[0]?.id || "") }));
     });
   }, []);
 
@@ -41,11 +36,20 @@ export function CreateReportPage() {
     event.preventDefault();
     const response = await api.post("/daily-reports", {
       ...form,
-      construction_object_id: Number(form.construction_object_id),
-      employee_id: Number(form.employee_id),
+      construction_object_id: activeAssignment?.construction_object?.id,
+      employee_id: activeAssignment?.employee.id,
+      work_plan_item_id: form.work_plan_item_id ? Number(form.work_plan_item_id) : null,
+      completed_volume: form.completed_volume ? Number(form.completed_volume) : null,
+      media_note: mediaFiles.length ? `${mediaFiles.length} файл(и): ${mediaFiles.map((file) => file.name).join(", ")}` : null,
       worked_hours: workedHours,
       status: "review"
     });
+    await Promise.all(mediaFiles.map((file) => api.post("/report-photos", {
+      daily_report_id: response.data.id,
+      file_name: file.name,
+      file_url: `local-demo://${file.name}`,
+      caption: "Додано працівником у формі звіту"
+    })));
     navigate(`/worker/reports/${response.data.id}`);
   }
 
@@ -58,21 +62,28 @@ export function CreateReportPage() {
       </header>
       <main className="mobile-content">
         <form className="form-grid" onSubmit={submit}>
+          <section className="locked-assignment">
+            <span>Закріплений поточний об'єкт</span>
+            <strong>{activeAssignment?.construction_object?.name || "Об'єкт не призначено"}</strong>
+            <p>{activeAssignment?.employee.first_name} {activeAssignment?.employee.last_name} · {activeAssignment?.crew?.name || "без бригади"}</p>
+          </section>
           <label className="field">Дата<input type="date" value={form.report_date} onChange={(e) => setForm({ ...form, report_date: e.target.value })} /></label>
-          <label className="field">Працівник<select value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
-          <label className="field">Об'єкт<select value={form.construction_object_id} onChange={(e) => setForm({ ...form, construction_object_id: e.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
+          <label className="field">План робіт<select value={form.work_plan_item_id} onChange={(e) => setForm({ ...form, work_plan_item_id: e.target.value })}>
+            {activeAssignment?.work_plan_items.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.completed_volume}/{item.planned_volume} {item.unit}</option>)}
+          </select></label>
           <div className="field-row">
             <label className="field">Початок<input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
             <label className="field">Завершення<input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
           </div>
           <label className="field">Перерва, хв<input type="number" value={form.break_minutes} onChange={(e) => setForm({ ...form, break_minutes: Number(e.target.value) })} /></label>
           <div className="hours-row"><span>Розрахований робочий час</span><strong>{workedHours.toFixed(2)} h</strong></div>
+          <label className="field">Виконаний обсяг<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="Напр.: 12.5" /></label>
           <label className="field">Опис робіт<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="Напр.: змонтовано кабельні траси, підготовлено головний щит" /></label>
-          <label className="field">Фото<input type="file" accept="image/*" multiple /><span className="helper">MVP зберігає metadata фото через API; реальне файлове сховище підключається окремо.</span></label>
-          <button className="btn btn-primary btn-block" type="submit">Надіслати звіт</button>
+          <label className="field">Фото / медіа<input type="file" accept="image/*,video/*" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Для MVP зберігається metadata файлів; у production підключається S3/Cloudinary.</span></label>
+          {mediaFiles.length > 0 && <div className="file-list">{mediaFiles.map((file) => <span key={file.name}>{file.name}</span>)}</div>}
+          <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Надіслати звіт</button>
         </form>
       </main>
     </>
   );
 }
-

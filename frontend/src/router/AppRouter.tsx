@@ -5,10 +5,12 @@ import { MobileLayout } from "../layouts/MobileLayout";
 import { AdminDashboardPage } from "../pages/AdminDashboardPage";
 import { CalendarPage } from "../pages/CalendarPage";
 import { CreateReportPage } from "../pages/CreateReportPage";
+import { CrewsPage } from "../pages/CrewsPage";
 import { EmployeesPage } from "../pages/EmployeesPage";
 import { LoginPage } from "../pages/LoginPage";
 import { MorePage } from "../pages/MorePage";
 import { ObjectsPage } from "../pages/ObjectsPage";
+import { ObjectDetailPage } from "../pages/ObjectDetailPage";
 import { ReportDetailsPage } from "../pages/ReportDetailsPage";
 import { ReportReviewPage } from "../pages/ReportReviewPage";
 import { ReportsListPage } from "../pages/ReportsListPage";
@@ -42,10 +44,12 @@ export function AppRouter() {
         <Route path="reports" element={<ReportsListPage />} />
         <Route path="reports/:id" element={<ReportReviewPage />} />
         <Route path="employees" element={<EmployeesPage />} />
+        <Route path="crews" element={<CrewsPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="objects" element={<ObjectsPage />} />
+        <Route path="objects/:id" element={<ObjectDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
-

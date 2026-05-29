@@ -7,7 +7,7 @@
 - Backend: Python, FastAPI, SQLAlchemy, Alembic, Pydantic, JWT
 - Database: PostgreSQL
 - Frontend: React, Vite, React Router, Axios, TypeScript
-- Deploy: Render для backend, Vercel для frontend
+- Deploy: Railway для backend, Vercel для frontend
 
 ## Architecture
 
@@ -17,7 +17,7 @@ Monorepo:
 backend/   FastAPI REST API, SQLAlchemy models, Alembic migrations, seed data
 frontend/  React/Vite UI for worker mobile flow and foreman/admin web flow
 docs/      architecture, modules, API, database and deployment documentation
-render.yaml Render Blueprint for API + PostgreSQL
+railway.json Railway config for backend service startup from monorepo
 ```
 
 ## Local PostgreSQL
@@ -80,46 +80,40 @@ CI is configured in `.github/workflows/ci.yml`:
 
 ## Deployment
 
-Render hosts the backend API and PostgreSQL. The repository includes `render.yaml` for repeatable Blueprint deploys.
+Railway hosts the backend API and PostgreSQL. The repository includes `railway.json` so the backend service can run migrations, seed demo data and start `uvicorn` from the monorepo root.
 
-- Root Directory: `backend`
-- Runtime: Python 3
-- Region: Frankfurt
-- Build command: `pip install -r requirements.txt`
-- Pre-deploy command: `alembic upgrade head`
-- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Source repo: `https://github.com/wuzimoo/diploma.git`
+- Service root: repository root with `railway.json`
+- Runtime: Python 3.11
+- Build command: `cd backend && pip install -r requirements.txt`
+- Start command: `cd backend && alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Health check path: `/api/health`
 
-Add a Render PostgreSQL database in the same region and use its Internal Database URL as `DATABASE_URL`.
+Add a Railway PostgreSQL service in the same project and bind `DATABASE_URL` to the backend service.
 
-Required Render backend variables:
+Required Railway backend variables:
 
 ```env
-DATABASE_URL=<Render Internal Database URL>
+DATABASE_URL=<Railway Postgres URL>
 SECRET_KEY=<secure-random-secret>
-PYTHON_VERSION=3.11.9
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 CORS_ORIGINS=https://frontend-pv2bfge8f-daniils-projects-5bff5a67.vercel.app,https://frontend-three-kappa-60.vercel.app,http://localhost:5173
 ENVIRONMENT=production
 ```
 
-Seed Render demo data once after the database is attached and migrations have run:
-
-```bash
-python -m app.db.seed
-```
+`python -m app.db.seed` is already included in the Railway start command and is idempotent.
 
 Vercel deploys `frontend` with:
 
 - Build command: `npm run build`
 - Output directory: `dist`
-- Env var: `VITE_API_URL=https://diploma-njc4.onrender.com/api`
+- Env var: `VITE_API_URL=<Railway backend API URL>/api`
 
-After Render deploys the backend, update Vercel `VITE_API_URL` and redeploy the frontend.
+After Railway deploys the backend, update Vercel `VITE_API_URL` and redeploy the frontend.
 
 ## Links
 
 - GitHub: https://github.com/wuzimoo/diploma.git
 - Vercel: https://frontend-pv2bfge8f-daniils-projects-5bff5a67.vercel.app
 - Vercel alias: https://frontend-three-kappa-60.vercel.app
-- Render backend: https://diploma-njc4.onrender.com
+- Railway backend: pending new deploy

@@ -1,4 +1,4 @@
-import { BarChart3, Building2, ClipboardList, LogOut, Users } from "lucide-react";
+import { BarChart3, Building2, CalendarDays, ClipboardList, HardHat, LogOut, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
@@ -17,6 +17,8 @@ export function AdminLayout() {
             <NavLink to="/admin"><BarChart3 size={18} />Панель</NavLink>
             <NavLink to="/admin/reports"><ClipboardList size={18} />Звіти</NavLink>
             <NavLink to="/admin/employees"><Users size={18} />Працівники</NavLink>
+            <NavLink to="/admin/crews"><HardHat size={18} />Бригади</NavLink>
+            <NavLink to="/admin/calendar"><CalendarDays size={18} />Календар</NavLink>
             <NavLink to="/admin/objects"><Building2 size={18} />Об'єкти</NavLink>
             <button className="link-button" onClick={logout} type="button"><LogOut size={18} />Вийти</button>
           </nav>
@@ -26,4 +28,3 @@ export function AdminLayout() {
     </div>
   );
 }
-

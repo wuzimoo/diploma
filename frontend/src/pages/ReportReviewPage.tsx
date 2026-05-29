@@ -38,11 +38,14 @@ export function ReportReviewPage() {
           <div className="detail-tile"><span>Працівник</span><strong>{report.employee.first_name} {report.employee.last_name}</strong></div>
           <div className="detail-tile"><span>Дата</span><strong>{report.report_date}</strong></div>
           <div className="detail-tile"><span>Об'єкт</span><strong>{report.construction_object.name}</strong></div>
+          <div className="detail-tile"><span>План робіт</span><strong>{report.work_plan_item?.title || "не прив'язано"}</strong></div>
           <div className="detail-tile"><span>Початок</span><strong>{report.start_time.slice(0, 5)}</strong></div>
           <div className="detail-tile"><span>Завершення</span><strong>{report.end_time.slice(0, 5)}</strong></div>
           <div className="detail-tile"><span>Робочий час</span><strong>{report.worked_hours.toFixed(2)} h</strong></div>
+          <div className="detail-tile"><span>Обсяг</span><strong>{report.completed_volume ? `${report.completed_volume} ${report.work_plan_item?.unit || ""}` : "не вказано"}</strong></div>
         </div>
         <label className="field">Опис робіт<textarea value={report.work_description} readOnly /></label>
+        {report.media_note && <div className="warning-note">{report.media_note}</div>}
         <div className="photo-grid">
           {report.photos.length ? report.photos.map((photo) => <div className="photo-card" key={photo.id}>{photo.caption || photo.file_name}</div>) : <div className="photo-card">Фото не додано</div>}
         </div>
@@ -62,4 +65,3 @@ export function ReportReviewPage() {
     </div>
   );
 }
-

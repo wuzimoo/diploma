@@ -80,12 +80,25 @@ class EmployeeOut(ORMModel):
     status: str
 
 
+class CrewMemberEmployeeOut(EmployeeOut):
+    pass
+
+
 class ConstructionObjectBase(BaseModel):
     name: str
     code: str
     city: str
     address: str
     client: str | None = None
+    description: str | None = None
+    work_scope: str | None = None
+    site_manager: str | None = None
+    priority: str = "normal"
+    planned_start_date: date | None = None
+    planned_end_date: date | None = None
+    actual_start_date: date | None = None
+    actual_end_date: date | None = None
+    progress_percent: float = Field(default=0, ge=0, le=100)
     status: str = "active"
     start_date: date | None = None
     end_date: date | None = None
@@ -102,6 +115,15 @@ class ConstructionObjectUpdate(BaseModel):
     city: str | None = None
     address: str | None = None
     client: str | None = None
+    description: str | None = None
+    work_scope: str | None = None
+    site_manager: str | None = None
+    priority: str | None = None
+    planned_start_date: date | None = None
+    planned_end_date: date | None = None
+    actual_start_date: date | None = None
+    actual_end_date: date | None = None
+    progress_percent: float | None = Field(default=None, ge=0, le=100)
     status: str | None = None
     start_date: date | None = None
     end_date: date | None = None
@@ -115,6 +137,15 @@ class ConstructionObjectOut(ORMModel):
     city: str
     address: str
     client: str | None
+    description: str | None
+    work_scope: str | None
+    site_manager: str | None
+    priority: str
+    planned_start_date: date | None
+    planned_end_date: date | None
+    actual_start_date: date | None
+    actual_end_date: date | None
+    progress_percent: float
     status: str
     start_date: date | None
     end_date: date | None
@@ -124,6 +155,7 @@ class ConstructionObjectOut(ORMModel):
 class AssignmentBase(BaseModel):
     employee_id: int
     construction_object_id: int
+    crew_id: int | None = None
     role_on_object: str = "Працівник"
     start_date: date
     end_date: date | None = None
@@ -137,6 +169,7 @@ class AssignmentCreate(AssignmentBase):
 class AssignmentUpdate(BaseModel):
     employee_id: int | None = None
     construction_object_id: int | None = None
+    crew_id: int | None = None
     role_on_object: str | None = None
     start_date: date | None = None
     end_date: date | None = None
@@ -147,15 +180,129 @@ class AssignmentOut(ORMModel):
     id: int
     employee_id: int
     construction_object_id: int
+    crew_id: int | None
     role_on_object: str
     start_date: date
     end_date: date | None
     is_active: bool
 
 
+class CrewBase(BaseModel):
+    name: str
+    specialization: str = "Загальнобудівельні роботи"
+    foreman_employee_id: int | None = None
+    current_object_id: int | None = None
+    status: str = "active"
+    notes: str | None = None
+
+
+class CrewCreate(CrewBase):
+    pass
+
+
+class CrewUpdate(BaseModel):
+    name: str | None = None
+    specialization: str | None = None
+    foreman_employee_id: int | None = None
+    current_object_id: int | None = None
+    status: str | None = None
+    notes: str | None = None
+
+
+class CrewMemberBase(BaseModel):
+    crew_id: int
+    employee_id: int
+    role_in_crew: str = "Працівник"
+    joined_at: date
+    is_active: bool = True
+
+
+class CrewMemberCreate(CrewMemberBase):
+    pass
+
+
+class CrewMemberUpdate(BaseModel):
+    crew_id: int | None = None
+    employee_id: int | None = None
+    role_in_crew: str | None = None
+    joined_at: date | None = None
+    is_active: bool | None = None
+
+
+class CrewMemberOut(ORMModel):
+    id: int
+    crew_id: int
+    employee_id: int
+    role_in_crew: str
+    joined_at: date
+    is_active: bool
+    employee: EmployeeOut | None = None
+
+
+class CrewOut(ORMModel):
+    id: int
+    name: str
+    specialization: str
+    foreman_employee_id: int | None
+    current_object_id: int | None
+    status: str
+    notes: str | None
+    current_object: ConstructionObjectOut | None = None
+    foreman: EmployeeOut | None = None
+    members: list[CrewMemberOut] = []
+
+
+class WorkPlanItemBase(BaseModel):
+    construction_object_id: int
+    crew_id: int | None = None
+    title: str
+    description: str | None = None
+    planned_volume: float = Field(default=0, ge=0)
+    completed_volume: float = Field(default=0, ge=0)
+    unit: str = "m2"
+    status: str = "planned"
+    planned_start: date | None = None
+    planned_end: date | None = None
+    priority: str = "normal"
+
+
+class WorkPlanItemCreate(WorkPlanItemBase):
+    pass
+
+
+class WorkPlanItemUpdate(BaseModel):
+    construction_object_id: int | None = None
+    crew_id: int | None = None
+    title: str | None = None
+    description: str | None = None
+    planned_volume: float | None = None
+    completed_volume: float | None = None
+    unit: str | None = None
+    status: str | None = None
+    planned_start: date | None = None
+    planned_end: date | None = None
+    priority: str | None = None
+
+
+class WorkPlanItemOut(ORMModel):
+    id: int
+    construction_object_id: int
+    crew_id: int | None
+    title: str
+    description: str | None
+    planned_volume: float
+    completed_volume: float
+    unit: str
+    status: str
+    planned_start: date | None
+    planned_end: date | None
+    priority: str
+
+
 class DailyReportBase(BaseModel):
     employee_id: int
     construction_object_id: int
+    work_plan_item_id: int | None = None
     report_date: date
     start_time: time
     end_time: time
@@ -163,6 +310,8 @@ class DailyReportBase(BaseModel):
     worked_hours: float | None = None
     status: str = "open"
     work_description: str = Field(min_length=5)
+    completed_volume: float | None = Field(default=None, ge=0)
+    media_note: str | None = None
     rejection_reason: str | None = None
 
 
@@ -173,6 +322,7 @@ class DailyReportCreate(DailyReportBase):
 class DailyReportUpdate(BaseModel):
     employee_id: int | None = None
     construction_object_id: int | None = None
+    work_plan_item_id: int | None = None
     report_date: date | None = None
     start_time: time | None = None
     end_time: time | None = None
@@ -180,6 +330,8 @@ class DailyReportUpdate(BaseModel):
     worked_hours: float | None = None
     status: str | None = None
     work_description: str | None = None
+    completed_volume: float | None = None
+    media_note: str | None = None
     rejection_reason: str | None = None
 
 
@@ -207,6 +359,7 @@ class DailyReportOut(ORMModel):
     report_number: str
     employee_id: int
     construction_object_id: int
+    work_plan_item_id: int | None
     report_date: date
     start_time: time
     end_time: time
@@ -214,9 +367,12 @@ class DailyReportOut(ORMModel):
     worked_hours: float
     status: str
     work_description: str
+    completed_volume: float | None
+    media_note: str | None
     rejection_reason: str | None
     employee: EmployeeOut
     construction_object: ConstructionObjectOut
+    work_plan_item: WorkPlanItemOut | None = None
     photos: list[ReportPhotoOut] = []
     created_at: datetime
 
@@ -336,3 +492,23 @@ class ExpenseOut(ORMModel):
     amount: float
     description: str
     construction_object: ConstructionObjectOut
+
+
+class ActiveAssignmentOut(BaseModel):
+    employee: EmployeeOut
+    assignment: AssignmentOut | None = None
+    crew: CrewOut | None = None
+    construction_object: ConstructionObjectOut | None = None
+    work_plan_items: list[WorkPlanItemOut] = []
+
+
+class ObjectSummaryOut(BaseModel):
+    object: ConstructionObjectOut
+    crews: list[CrewOut]
+    employees: list[EmployeeOut]
+    work_plan_items: list[WorkPlanItemOut]
+    reports: list[DailyReportOut]
+    report_statuses: dict[str, int]
+    total_hours: float
+    expense_total: float
+    progress_percent: float

@@ -5,20 +5,23 @@ import { EmptyState } from "../components/EmptyState";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
-import { Analytics, DailyReport } from "../types/api";
+import { ActiveAssignment, Analytics, DailyReport } from "../types/api";
 
 export function WorkerHomePage() {
   const { user } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get<DailyReport[]>("/daily-reports", { params: { limit: 5 } }),
-      api.get<Analytics>("/dashboard/analytics")
-    ]).then(([reportsResponse, analyticsResponse]) => {
+      api.get<Analytics>("/dashboard/analytics"),
+      api.get<ActiveAssignment>("/me/active-assignment")
+    ]).then(([reportsResponse, analyticsResponse, assignmentResponse]) => {
       setReports(reportsResponse.data);
       setAnalytics(analyticsResponse.data);
+      setActiveAssignment(assignmentResponse.data);
     });
   }, []);
 
@@ -30,6 +33,11 @@ export function WorkerHomePage() {
       </header>
       <main className="mobile-content">
         <Link className="btn btn-primary btn-block" to="/worker/reports/new">Створити щоденний звіт</Link>
+        <section className="locked-assignment">
+          <span>Поточне закріплення</span>
+          <strong>{activeAssignment?.construction_object?.name || "Об'єкт не призначено"}</strong>
+          <p>{activeAssignment?.crew?.name || "без бригади"} · {activeAssignment?.work_plan_items.length || 0} задач(і) у плані</p>
+        </section>
         <section className="summary-card">
           <span className="text-muted">Робочі години в системі</span>
           <strong className="summary-number">{analytics?.total_hours.toFixed(2) || "0.00"} h</strong>
@@ -62,4 +70,3 @@ export function WorkerHomePage() {
     </>
   );
 }
-

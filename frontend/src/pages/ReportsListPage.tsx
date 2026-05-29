@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../services/api";
 import { DailyReport } from "../types/api";
 
 export function ReportsListPage() {
+  const [searchParams] = useSearchParams();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(searchParams.get("status") || "");
+
+  useEffect(() => {
+    setStatus(searchParams.get("status") || "");
+  }, [searchParams]);
 
   useEffect(() => {
     api.get<DailyReport[]>("/daily-reports", { params: { limit: 100, status_filter: status || undefined, search: search || undefined } }).then((response) => setReports(response.data));
@@ -29,13 +34,14 @@ export function ReportsListPage() {
       </div>
       <div className="table-wrap">
         <table className="table">
-          <thead><tr><th>Дата</th><th>Працівник</th><th>Об'єкт</th><th>Час</th><th>Години</th><th>Статус</th><th>Дії</th></tr></thead>
+          <thead><tr><th>Дата</th><th>Працівник</th><th>Об'єкт</th><th>План</th><th>Час</th><th>Години</th><th>Статус</th><th>Дії</th></tr></thead>
           <tbody>
             {reports.map((report) => (
               <tr key={report.id}>
                 <td>{report.report_date}</td>
                 <td>{report.employee.first_name} {report.employee.last_name}</td>
                 <td>{report.construction_object.name}</td>
+                <td>{report.work_plan_item?.title || "Без плану"}</td>
                 <td>{report.start_time.slice(0, 5)} - {report.end_time.slice(0, 5)}</td>
                 <td>{report.worked_hours.toFixed(2)} h</td>
                 <td><StatusBadge status={report.status} /></td>
@@ -48,4 +54,3 @@ export function ReportsListPage() {
     </section>
   );
 }
-

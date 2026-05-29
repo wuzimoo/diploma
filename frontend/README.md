@@ -16,7 +16,7 @@ Default URL: `http://localhost:5173`.
 Set `VITE_API_URL` to the deployed backend API URL, for example:
 
 ```env
-VITE_API_URL=https://diploma-njc4.onrender.com/api
+VITE_API_URL=https://your-railway-backend.up.railway.app/api
 ```
 
 ## E2E Tests

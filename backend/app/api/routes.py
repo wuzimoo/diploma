@@ -9,6 +9,8 @@ from app.core.security import get_password_hash
 from app.db.session import get_db
 from app.models import (
     ConstructionObject,
+    Crew,
+    CrewMember,
     DailyReport,
     Employee,
     Expense,
@@ -19,14 +21,22 @@ from app.models import (
     ReportPhoto,
     Role,
     User,
+    WorkPlanItem,
 )
 from app.schemas import (
+    ActiveAssignmentOut,
     AssignmentCreate,
     AssignmentOut,
     AssignmentUpdate,
     ConstructionObjectCreate,
     ConstructionObjectOut,
     ConstructionObjectUpdate,
+    CrewCreate,
+    CrewMemberCreate,
+    CrewMemberOut,
+    CrewMemberUpdate,
+    CrewOut,
+    CrewUpdate,
     DailyReportCreate,
     DailyReportOut,
     DailyReportUpdate,
@@ -45,12 +55,16 @@ from app.schemas import (
     MaterialRequestOut,
     MaterialRequestUpdate,
     MaterialUpdate,
+    ObjectSummaryOut,
     ReportPhotoCreate,
     ReportPhotoOut,
     ReportStatusUpdate,
     UserCreate,
     UserOut,
     UserUpdate,
+    WorkPlanItemCreate,
+    WorkPlanItemOut,
+    WorkPlanItemUpdate,
 )
 from app.services.crud import create_item, delete_item, get_or_404, list_query, next_report_number, next_request_number, update_item
 from app.utils.dates import calculate_worked_hours
@@ -151,6 +165,44 @@ def delete_object(item_id: int, db: Session = Depends(get_db), _: User = Depends
     delete_item(db, get_or_404(db, ConstructionObject, item_id))
 
 
+@router.get("/objects/{item_id}/summary", response_model=ObjectSummaryOut, tags=["objects"])
+def object_summary(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> dict:
+    construction_object = get_or_404(db, ConstructionObject, item_id)
+    crews = list(
+        db.scalars(
+            select(Crew)
+            .options(selectinload(Crew.current_object), selectinload(Crew.foreman), selectinload(Crew.members).selectinload(CrewMember.employee))
+            .where(Crew.current_object_id == item_id)
+        ).all()
+    )
+    employees = list(
+        db.scalars(
+            select(Employee)
+            .join(ObjectAssignment, ObjectAssignment.employee_id == Employee.id)
+            .where(ObjectAssignment.construction_object_id == item_id, ObjectAssignment.is_active.is_(True))
+        ).unique().all()
+    )
+    work_plan_items = list(db.scalars(select(WorkPlanItem).where(WorkPlanItem.construction_object_id == item_id).order_by(WorkPlanItem.planned_start, WorkPlanItem.id)).all())
+    reports = list(db.scalars(report_query(db).where(DailyReport.construction_object_id == item_id).order_by(DailyReport.report_date.desc()).limit(20)).all())
+    report_statuses = dict(db.execute(select(DailyReport.status, func.count(DailyReport.id)).where(DailyReport.construction_object_id == item_id).group_by(DailyReport.status)).all())
+    total_hours = float(db.scalar(select(func.coalesce(func.sum(DailyReport.worked_hours), 0)).where(DailyReport.construction_object_id == item_id)) or 0)
+    expense_total = float(db.scalar(select(func.coalesce(func.sum(Expense.amount), 0)).where(Expense.construction_object_id == item_id)) or 0)
+    planned = sum(item.planned_volume or 0 for item in work_plan_items)
+    completed = sum(item.completed_volume or 0 for item in work_plan_items)
+    progress_percent = round((completed / planned) * 100, 1) if planned else construction_object.progress_percent
+    return {
+        "object": construction_object,
+        "crews": crews,
+        "employees": employees,
+        "work_plan_items": work_plan_items,
+        "reports": reports,
+        "report_statuses": report_statuses,
+        "total_hours": round(total_hours, 2),
+        "expense_total": round(expense_total, 2),
+        "progress_percent": progress_percent,
+    }
+
+
 @router.get("/assignments", response_model=list[AssignmentOut], tags=["assignments"])
 def list_assignments(skip: int = 0, limit: int = 50, employee_id: int | None = None, construction_object_id: int | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ObjectAssignment]:
     return list_query(db, ObjectAssignment, skip=skip, limit=limit, filters={"employee_id": employee_id, "construction_object_id": construction_object_id})
@@ -171,8 +223,86 @@ def delete_assignment(item_id: int, db: Session = Depends(get_db), _: User = Dep
     delete_item(db, get_or_404(db, ObjectAssignment, item_id))
 
 
+@router.get("/me/active-assignment", response_model=ActiveAssignmentOut, tags=["assignments"])
+def my_active_assignment(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
+    employee = db.scalar(select(Employee).where(Employee.user_id == current_user.id))
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee profile not found")
+    assignment = db.scalar(
+        select(ObjectAssignment)
+        .options(selectinload(ObjectAssignment.construction_object), selectinload(ObjectAssignment.crew))
+        .where(ObjectAssignment.employee_id == employee.id, ObjectAssignment.is_active.is_(True))
+        .order_by(ObjectAssignment.start_date.desc(), ObjectAssignment.id.desc())
+    )
+    crew = assignment.crew if assignment else db.scalar(select(Crew).join(CrewMember).where(CrewMember.employee_id == employee.id, CrewMember.is_active.is_(True)).limit(1))
+    construction_object = assignment.construction_object if assignment else (crew.current_object if crew else None)
+    work_plan_items = []
+    if construction_object:
+        stmt = select(WorkPlanItem).where(WorkPlanItem.construction_object_id == construction_object.id)
+        if crew:
+            stmt = stmt.where((WorkPlanItem.crew_id == crew.id) | (WorkPlanItem.crew_id.is_(None)))
+        work_plan_items = list(db.scalars(stmt.order_by(WorkPlanItem.planned_start, WorkPlanItem.id)).all())
+    return {"employee": employee, "assignment": assignment, "crew": crew, "construction_object": construction_object, "work_plan_items": work_plan_items}
+
+
+def crew_query():
+    return select(Crew).options(selectinload(Crew.current_object), selectinload(Crew.foreman), selectinload(Crew.members).selectinload(CrewMember.employee))
+
+
+@router.get("/crews", response_model=list[CrewOut], tags=["crews"])
+def list_crews(skip: int = 0, limit: int = 50, current_object_id: int | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[Crew]:
+    stmt = crew_query()
+    if current_object_id:
+        stmt = stmt.where(Crew.current_object_id == current_object_id)
+    return list(db.scalars(stmt.order_by(Crew.name).offset(skip).limit(min(limit, 100))).all())
+
+
+@router.post("/crews", response_model=CrewOut, status_code=status.HTTP_201_CREATED, tags=["crews"])
+def create_crew(payload: CrewCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Crew:
+    crew = create_item(db, Crew, payload.model_dump())
+    return db.scalar(crew_query().where(Crew.id == crew.id))
+
+
+@router.patch("/crews/{item_id}", response_model=CrewOut, tags=["crews"])
+def update_crew(item_id: int, payload: CrewUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Crew:
+    update_item(db, get_or_404(db, Crew, item_id), payload.model_dump(exclude_unset=True))
+    return db.scalar(crew_query().where(Crew.id == item_id))
+
+
+@router.post("/crew-members", response_model=CrewMemberOut, status_code=status.HTTP_201_CREATED, tags=["crews"])
+def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> CrewMember:
+    item = create_item(db, CrewMember, payload.model_dump())
+    return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item.id))
+
+
+@router.patch("/crew-members/{item_id}", response_model=CrewMemberOut, tags=["crews"])
+def update_crew_member(item_id: int, payload: CrewMemberUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> CrewMember:
+    update_item(db, get_or_404(db, CrewMember, item_id), payload.model_dump(exclude_unset=True))
+    return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item_id))
+
+
+@router.get("/work-plan-items", response_model=list[WorkPlanItemOut], tags=["work plan"])
+def list_work_plan_items(construction_object_id: int | None = None, crew_id: int | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[WorkPlanItem]:
+    stmt = select(WorkPlanItem)
+    if construction_object_id:
+        stmt = stmt.where(WorkPlanItem.construction_object_id == construction_object_id)
+    if crew_id:
+        stmt = stmt.where(WorkPlanItem.crew_id == crew_id)
+    return list(db.scalars(stmt.order_by(WorkPlanItem.planned_start, WorkPlanItem.id)).all())
+
+
+@router.post("/work-plan-items", response_model=WorkPlanItemOut, status_code=status.HTTP_201_CREATED, tags=["work plan"])
+def create_work_plan_item(payload: WorkPlanItemCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> WorkPlanItem:
+    return create_item(db, WorkPlanItem, payload.model_dump())
+
+
+@router.patch("/work-plan-items/{item_id}", response_model=WorkPlanItemOut, tags=["work plan"])
+def update_work_plan_item(item_id: int, payload: WorkPlanItemUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> WorkPlanItem:
+    return update_item(db, get_or_404(db, WorkPlanItem, item_id), payload.model_dump(exclude_unset=True))
+
+
 def report_query(db: Session):
-    return select(DailyReport).options(selectinload(DailyReport.employee), selectinload(DailyReport.construction_object), selectinload(DailyReport.photos))
+    return select(DailyReport).options(selectinload(DailyReport.employee), selectinload(DailyReport.construction_object), selectinload(DailyReport.work_plan_item), selectinload(DailyReport.photos))
 
 
 @router.get("/daily-reports", response_model=list[DailyReportOut], tags=["daily reports"])
@@ -211,6 +341,14 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), _: 
     data["report_number"] = data["report_number"] or next_report_number(db)
     data["worked_hours"] = data["worked_hours"] or calculate_worked_hours(data["start_time"], data["end_time"], data["break_minutes"])
     item = create_item(db, DailyReport, data)
+    if item.work_plan_item_id and item.completed_volume:
+        plan = get_or_404(db, WorkPlanItem, item.work_plan_item_id)
+        plan.completed_volume = min((plan.completed_volume or 0) + item.completed_volume, plan.planned_volume or ((plan.completed_volume or 0) + item.completed_volume))
+        if plan.planned_volume and plan.completed_volume >= plan.planned_volume:
+            plan.status = "done"
+        elif plan.completed_volume:
+            plan.status = "in_progress"
+        db.commit()
     return db.scalar(report_query(db).where(DailyReport.id == item.id))
 
 
@@ -392,12 +530,18 @@ def dashboard_analytics(db: Session = Depends(get_db), _: User = Depends(get_cur
     active_employees = db.scalar(select(func.count(Employee.id)).where(Employee.status == "active")) or 0
     expense_total = float(db.scalar(select(func.coalesce(func.sum(Expense.amount), 0))) or 0)
     hours_by_object = [
-        {"object": name, "hours": float(hours or 0)}
-        for name, hours in db.execute(
-            select(ConstructionObject.name, func.sum(DailyReport.worked_hours))
+        {"object": name, "object_id": object_id, "hours": float(hours or 0)}
+        for object_id, name, hours in db.execute(
+            select(ConstructionObject.id, ConstructionObject.name, func.sum(DailyReport.worked_hours))
             .join(DailyReport, DailyReport.construction_object_id == ConstructionObject.id)
-            .group_by(ConstructionObject.name)
+            .group_by(ConstructionObject.id, ConstructionObject.name)
             .order_by(func.sum(DailyReport.worked_hours).desc())
+        ).all()
+    ]
+    object_progress = [
+        {"object_id": object_id, "object": name, "progress_percent": float(progress or 0), "status": object_status}
+        for object_id, name, progress, object_status in db.execute(
+            select(ConstructionObject.id, ConstructionObject.name, ConstructionObject.progress_percent, ConstructionObject.status).order_by(ConstructionObject.name)
         ).all()
     ]
     return {
@@ -407,6 +551,8 @@ def dashboard_analytics(db: Session = Depends(get_db), _: User = Depends(get_cur
         "active_employees": active_employees,
         "expense_total": round(expense_total, 2),
         "hours_by_object": hours_by_object,
+        "object_progress": object_progress,
+        "expense_hint": "Витрати рахуються як сума записів expenses по об'єктах; години - сума погоджених і поточних daily reports.",
     }
 
 
@@ -422,3 +568,38 @@ def calendar_summary(date_from: date | None = None, date_to: date | None = None,
         {"date": row[0].isoformat(), "status": row[1], "count": row[2], "hours": float(row[3] or 0)}
         for row in db.execute(stmt).all()
     ]
+
+
+@router.get("/calendar/detailed", tags=["calendar"])
+def calendar_detailed(date_from: date | None = None, date_to: date | None = None, construction_object_id: int | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[dict]:
+    stmt = report_query(db)
+    if date_from:
+        stmt = stmt.where(DailyReport.report_date >= date_from)
+    if date_to:
+        stmt = stmt.where(DailyReport.report_date <= date_to)
+    if construction_object_id:
+        stmt = stmt.where(DailyReport.construction_object_id == construction_object_id)
+    reports = list(db.scalars(stmt.order_by(DailyReport.report_date, DailyReport.id)).all())
+    by_date: dict[str, dict] = {}
+    for report in reports:
+        key = report.report_date.isoformat()
+        day = by_date.setdefault(key, {"date": key, "count": 0, "hours": 0.0, "open_count": 0, "review_count": 0, "approved_count": 0, "rejected_count": 0, "severity": "ok", "reports": []})
+        day["count"] += 1
+        day["hours"] = round(day["hours"] + float(report.worked_hours or 0), 2)
+        day[f"{report.status}_count"] = day.get(f"{report.status}_count", 0) + 1
+        if report.status in {"open", "review"}:
+            day["severity"] = "warning"
+        if report.status == "rejected":
+            day["severity"] = "danger"
+        day["reports"].append(
+            {
+                "id": report.id,
+                "report_number": report.report_number,
+                "status": report.status,
+                "employee": f"{report.employee.first_name} {report.employee.last_name}",
+                "object": report.construction_object.name,
+                "hours": float(report.worked_hours or 0),
+                "description": report.work_description,
+            }
+        )
+    return list(by_date.values())

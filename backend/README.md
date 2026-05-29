@@ -17,9 +17,16 @@ uvicorn app.main:app --reload
 
 API docs: `http://localhost:8000/docs`.
 
+## Railway
+
+The repository root contains `railway.json`. Railway starts the backend with:
+
+```bash
+cd backend && alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
 ## Demo Users
 
 - `admin@romans-erp.demo` / `Admin12345`
 - `foreman@romans-erp.demo` / `Foreman12345`
 - `worker@romans-erp.demo` / `Worker12345`
-

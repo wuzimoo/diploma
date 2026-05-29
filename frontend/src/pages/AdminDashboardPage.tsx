@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "../services/api";
 import { Analytics } from "../types/api";
@@ -11,10 +12,10 @@ export function AdminDashboardPage() {
   return (
     <>
       <section className="summary-grid-desktop">
-        <article className="summary-tile"><p>Відкриті звіти</p><strong>{analytics?.report_statuses.open || 0}</strong></article>
-        <article className="summary-tile"><p>На перевірці</p><strong>{analytics?.report_statuses.review || 0}</strong></article>
-        <article className="summary-tile"><p>Погоджено</p><strong>{analytics?.report_statuses.approved || 0}</strong></article>
-        <article className="summary-tile"><p>Активні працівники</p><strong>{analytics?.active_employees || 0}</strong></article>
+        <Link className="summary-tile" to="/admin/reports?status=open"><p>Відкриті звіти</p><strong>{analytics?.report_statuses.open || 0}</strong></Link>
+        <Link className="summary-tile" to="/admin/reports?status=review"><p>На перевірці</p><strong>{analytics?.report_statuses.review || 0}</strong></Link>
+        <Link className="summary-tile" to="/admin/reports?status=approved"><p>Погоджено</p><strong>{analytics?.report_statuses.approved || 0}</strong></Link>
+        <Link className="summary-tile" to="/admin/employees"><p>Активні працівники</p><strong>{analytics?.active_employees || 0}</strong></Link>
       </section>
       <section className="table-card stack">
         <div>
@@ -23,16 +24,27 @@ export function AdminDashboardPage() {
         </div>
         <div className="analytics-bars">
           {analytics?.hours_by_object.map((row) => (
-            <div className="bar-row" key={row.object}>
+            <Link className="bar-row clickable-row" key={row.object} to={`/admin/objects/${row.object_id}`}>
               <span>{row.object}</span>
               <div><i style={{ width: `${Math.min(row.hours * 4, 100)}%` }} /></div>
               <strong>{row.hours.toFixed(2)} h</strong>
-            </div>
+            </Link>
           ))}
         </div>
-        <div className="warning-note">Загальні витрати: EUR {analytics?.expense_total.toFixed(2) || "0.00"}</div>
+        <div className="expense-panel">
+          <strong>Загальні витрати: EUR {analytics?.expense_total.toFixed(2) || "0.00"}</strong>
+          <span>{analytics?.expense_hint}</span>
+        </div>
+        <div className="cards-grid">
+          {analytics?.object_progress.map((item) => (
+            <Link className="entity-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
+              <strong>{item.object}</strong>
+              <span>{item.status}</span>
+              <div className="mini-progress"><i style={{ width: `${item.progress_percent}%` }} /><span>{item.progress_percent}%</span></div>
+            </Link>
+          ))}
+        </div>
       </section>
     </>
   );
 }
-

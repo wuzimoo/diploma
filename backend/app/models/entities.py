@@ -50,6 +50,7 @@ class Employee(Base, TimestampMixin):
     user: Mapped[User | None] = relationship(back_populates="employee")
     assignments: Mapped[list["ObjectAssignment"]] = relationship(back_populates="employee")
     daily_reports: Mapped[list["DailyReport"]] = relationship(back_populates="employee")
+    crew_memberships: Mapped[list["CrewMember"]] = relationship(back_populates="employee", cascade="all, delete-orphan")
 
 
 class ConstructionObject(Base, TimestampMixin):
@@ -61,6 +62,15 @@ class ConstructionObject(Base, TimestampMixin):
     city: Mapped[str] = mapped_column(String(100), index=True)
     address: Mapped[str] = mapped_column(String(255))
     client: Mapped[str | None] = mapped_column(String(180))
+    description: Mapped[str | None] = mapped_column(Text)
+    work_scope: Mapped[str | None] = mapped_column(Text)
+    site_manager: Mapped[str | None] = mapped_column(String(160))
+    priority: Mapped[str] = mapped_column(String(30), default="normal")
+    planned_start_date: Mapped[date | None] = mapped_column(Date)
+    planned_end_date: Mapped[date | None] = mapped_column(Date)
+    actual_start_date: Mapped[date | None] = mapped_column(Date)
+    actual_end_date: Mapped[date | None] = mapped_column(Date)
+    progress_percent: Mapped[float] = mapped_column(Float, default=0)
     status: Mapped[str] = mapped_column(String(30), default="active")
     start_date: Mapped[date | None] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date)
@@ -69,6 +79,8 @@ class ConstructionObject(Base, TimestampMixin):
     daily_reports: Mapped[list["DailyReport"]] = relationship(back_populates="construction_object")
     material_requests: Mapped[list["MaterialRequest"]] = relationship(back_populates="construction_object")
     expenses: Mapped[list["Expense"]] = relationship(back_populates="construction_object")
+    crews: Mapped[list["Crew"]] = relationship(back_populates="current_object")
+    work_plan_items: Mapped[list["WorkPlanItem"]] = relationship(back_populates="construction_object", cascade="all, delete-orphan")
 
 
 class ObjectAssignment(Base, TimestampMixin):
@@ -77,12 +89,64 @@ class ObjectAssignment(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
     construction_object_id: Mapped[int] = mapped_column(ForeignKey("construction_objects.id"))
+    crew_id: Mapped[int | None] = mapped_column(ForeignKey("crews.id"))
     role_on_object: Mapped[str] = mapped_column(String(120), default="Працівник")
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     employee: Mapped[Employee] = relationship(back_populates="assignments")
     construction_object: Mapped[ConstructionObject] = relationship(back_populates="assignments")
+    crew: Mapped["Crew | None"] = relationship(back_populates="assignments")
+
+
+class Crew(Base, TimestampMixin):
+    __tablename__ = "crews"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(160), unique=True, index=True)
+    specialization: Mapped[str] = mapped_column(String(160), default="Загальнобудівельні роботи")
+    foreman_employee_id: Mapped[int | None] = mapped_column(ForeignKey("employees.id"))
+    current_object_id: Mapped[int | None] = mapped_column(ForeignKey("construction_objects.id"))
+    status: Mapped[str] = mapped_column(String(30), default="active")
+    notes: Mapped[str | None] = mapped_column(Text)
+    foreman: Mapped[Employee | None] = relationship(foreign_keys=[foreman_employee_id])
+    current_object: Mapped[ConstructionObject | None] = relationship(back_populates="crews")
+    members: Mapped[list["CrewMember"]] = relationship(back_populates="crew", cascade="all, delete-orphan")
+    assignments: Mapped[list[ObjectAssignment]] = relationship(back_populates="crew")
+    work_plan_items: Mapped[list["WorkPlanItem"]] = relationship(back_populates="crew")
+
+
+class CrewMember(Base, TimestampMixin):
+    __tablename__ = "crew_members"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    crew_id: Mapped[int] = mapped_column(ForeignKey("crews.id"))
+    employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
+    role_in_crew: Mapped[str] = mapped_column(String(120), default="Працівник")
+    joined_at: Mapped[date] = mapped_column(Date)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    crew: Mapped[Crew] = relationship(back_populates="members")
+    employee: Mapped[Employee] = relationship(back_populates="crew_memberships")
+
+
+class WorkPlanItem(Base, TimestampMixin):
+    __tablename__ = "work_plan_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    construction_object_id: Mapped[int] = mapped_column(ForeignKey("construction_objects.id"))
+    crew_id: Mapped[int | None] = mapped_column(ForeignKey("crews.id"))
+    title: Mapped[str] = mapped_column(String(180), index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    planned_volume: Mapped[float] = mapped_column(Float, default=0)
+    completed_volume: Mapped[float] = mapped_column(Float, default=0)
+    unit: Mapped[str] = mapped_column(String(30), default="m2")
+    status: Mapped[str] = mapped_column(String(30), default="planned")
+    planned_start: Mapped[date | None] = mapped_column(Date)
+    planned_end: Mapped[date | None] = mapped_column(Date)
+    priority: Mapped[str] = mapped_column(String(30), default="normal")
+    construction_object: Mapped[ConstructionObject] = relationship(back_populates="work_plan_items")
+    crew: Mapped[Crew | None] = relationship(back_populates="work_plan_items")
+    daily_reports: Mapped[list["DailyReport"]] = relationship(back_populates="work_plan_item")
 
 
 class DailyReport(Base, TimestampMixin):
@@ -92,6 +156,7 @@ class DailyReport(Base, TimestampMixin):
     report_number: Mapped[str] = mapped_column(String(60), unique=True, index=True)
     employee_id: Mapped[int] = mapped_column(ForeignKey("employees.id"))
     construction_object_id: Mapped[int] = mapped_column(ForeignKey("construction_objects.id"))
+    work_plan_item_id: Mapped[int | None] = mapped_column(ForeignKey("work_plan_items.id"))
     report_date: Mapped[date] = mapped_column(Date, index=True)
     start_time: Mapped[time] = mapped_column(Time)
     end_time: Mapped[time] = mapped_column(Time)
@@ -99,9 +164,12 @@ class DailyReport(Base, TimestampMixin):
     worked_hours: Mapped[float] = mapped_column(Float)
     status: Mapped[str] = mapped_column(String(30), default="open", index=True)
     work_description: Mapped[str] = mapped_column(Text)
+    completed_volume: Mapped[float | None] = mapped_column(Float)
+    media_note: Mapped[str | None] = mapped_column(Text)
     rejection_reason: Mapped[str | None] = mapped_column(Text)
     employee: Mapped[Employee] = relationship(back_populates="daily_reports")
     construction_object: Mapped[ConstructionObject] = relationship(back_populates="daily_reports")
+    work_plan_item: Mapped[WorkPlanItem | None] = relationship(back_populates="daily_reports")
     photos: Mapped[list["ReportPhoto"]] = relationship(back_populates="daily_report", cascade="all, delete-orphan")
 
 
