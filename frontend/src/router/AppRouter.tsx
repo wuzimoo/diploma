@@ -20,7 +20,7 @@ import { useAuth } from "../hooks/useAuth";
 function Protected({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
   if (loading) {
-    return <div className="loading-screen">Завантаження Roman's ERP...</div>;
+    return <div className="loading-screen">Завантаження Билдер ERP...</div>;
   }
   if (!user) {
     return <Navigate to="/login" replace />;

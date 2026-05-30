@@ -10,7 +10,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="REST API для інформаційної системи управління діяльністю будівельної компанії Roman's ERP.",
+    description="REST API для інформаційної системи управління діяльністю будівельної компанії Builder ERP.",
 )
 
 app.add_middleware(

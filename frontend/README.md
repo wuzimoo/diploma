@@ -1,6 +1,6 @@
-# Roman's ERP Frontend
+# Builder ERP Frontend
 
-React + Vite frontend for Roman's ERP. The UI is based on the provided `Romans ERP - SCREEN DEMO` screens and connects to the FastAPI backend via REST.
+React + Vite frontend for Builder ERP. The UI is based on the provided `Romans ERP - SCREEN DEMO` screens and connects to the FastAPI backend via REST.
 
 ## Local Setup
 

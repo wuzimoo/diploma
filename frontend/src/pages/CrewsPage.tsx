@@ -77,16 +77,38 @@ export function CrewsPage() {
   }
 
   async function addMember(crewId: number, employeeId: number) {
-    await api.post("/crew-members", {
-      crew_id: crewId,
-      employee_id: employeeId,
-      role_in_crew: "Працівник",
-      joined_at: new Date().toISOString().slice(0, 10),
-      is_active: true
-    });
-    setPickerCrewId(null);
-    pushToast({ tone: "success", title: "Працівника додано", description: "Склад бригади оновлено." });
-    load();
+    const currentCrew = crews.find((crew) => crew.id === crewId);
+    const employee = employees.find((item) => item.id === employeeId);
+    const previousCrew = crews.find((crew) => crew.id !== crewId && activeMembers(crew).some((member) => member.employee_id === employeeId));
+    const previousMembership = previousCrew?.members.find((member) => member.employee_id === employeeId && member.is_active);
+    if (previousCrew && previousMembership) {
+      const confirmed = window.confirm(
+        `${employee?.first_name || "Працівник"} ${employee?.last_name || ""} вже входить до бригади ${previousCrew.name}. Перемістити його до ${currentCrew?.name || "нової бригади"}?`
+      );
+      if (!confirmed) return;
+      await api.patch(`/crew-members/${previousMembership.id}`, { is_active: false });
+    }
+    try {
+      await api.post("/crew-members", {
+        crew_id: crewId,
+        employee_id: employeeId,
+        role_in_crew: "Працівник",
+        joined_at: new Date().toISOString().slice(0, 10),
+        is_active: true
+      });
+      setPickerCrewId(null);
+      pushToast({
+        tone: "success",
+        title: previousCrew ? "Працівника переміщено" : "Працівника додано",
+        description: previousCrew ? "Активна прив'язка до попередньої бригади закрита." : "Склад бригади оновлено."
+      });
+      load();
+    } catch (error) {
+      const detail = typeof error === "object" && error && "response" in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : undefined;
+      pushToast({ tone: "error", title: "Не вдалося додати працівника", description: detail || "Спробуйте ще раз після оновлення списку." });
+    }
   }
 
   async function removeMember(member: CrewMember) {

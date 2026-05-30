@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../services/api";
 import { Analytics } from "../types/api";
 
@@ -37,9 +38,11 @@ export function AdminDashboardPage() {
         </div>
         <div className="cards-grid">
           {analytics?.object_progress.map((item) => (
-            <Link className="entity-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
-              <strong>{item.object}</strong>
-              <span>{item.status}</span>
+            <Link className="entity-card object-progress-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
+              <div className="report-item-top">
+                <strong>{item.object}</strong>
+                <StatusBadge status={item.status} />
+              </div>
               <div className="mini-progress"><i style={{ width: `${item.progress_percent}%` }} /><span>{item.progress_percent}%</span></div>
             </Link>
           ))}

@@ -64,7 +64,7 @@ test("admin can use dashboard, filters, report approval and directory pages", as
   await page.getByRole("button", { name: "Admin" }).click();
   await page.getByRole("button", { name: "Увійти" }).click();
 
-  await expect(page.getByRole("heading", { name: "Roman's ERP" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Билдер ERP" })).toBeVisible();
   await expect(page.getByText("Аналітика по об'єктах")).toBeVisible();
   await expect(page.getByText("Загальні витрати: EUR 1046.50")).toBeVisible();
   await assertNoHorizontalOverflow(page);

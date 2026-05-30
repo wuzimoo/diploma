@@ -271,6 +271,19 @@ def update_crew(item_id: int, payload: CrewUpdate, db: Session = Depends(get_db)
 
 @router.post("/crew-members", response_model=CrewMemberOut, status_code=status.HTTP_201_CREATED, tags=["crews"])
 def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> CrewMember:
+    existing_member = db.scalar(
+        select(CrewMember)
+        .options(selectinload(CrewMember.crew))
+        .where(
+            CrewMember.employee_id == payload.employee_id,
+            CrewMember.is_active.is_(True),
+            CrewMember.crew_id != payload.crew_id,
+        )
+        .limit(1)
+    )
+    if existing_member:
+        crew_name = existing_member.crew.name if existing_member.crew else "іншій бригаді"
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Працівник уже закріплений в активній бригаді: {crew_name}")
     item = create_item(db, CrewMember, payload.model_dump())
     return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item.id))
 

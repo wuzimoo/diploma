@@ -1,4 +1,4 @@
-# Roman's ERP Backend
+# Builder ERP Backend
 
 FastAPI REST API for construction company operations: users, roles, employees, construction objects, daily reports, report photos, material requests, expenses, analytics and calendar summary.
 

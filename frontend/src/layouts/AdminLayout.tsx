@@ -10,7 +10,7 @@ export function AdminLayout() {
       <div className="desktop-shell">
         <header className="desktop-header">
           <div className="brand">
-            <h1>Roman's ERP</h1>
+            <h1>Билдер ERP</h1>
             <p>{user?.role.name || "Керування будівельною компанією"}</p>
           </div>
           <nav className="top-links">

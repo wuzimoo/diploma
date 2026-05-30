@@ -1,6 +1,6 @@
 # Architecture
 
-Roman's ERP is a pragmatic monorepo MVP with a single FastAPI backend, one PostgreSQL database and one React frontend.
+Builder ERP is a pragmatic monorepo MVP with a single FastAPI backend, one PostgreSQL database and one React frontend.
 
 ## Backend
 
