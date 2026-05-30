@@ -7,7 +7,9 @@ const labels: Record<string, string> = {
   planning: "Планування",
   archived: "Архів",
   done: "Завершено",
-  blocked: "Блоковано"
+  blocked: "Блоковано",
+  planned: "Заплановано",
+  in_progress: "У роботі"
 };
 
 export function statusLabel(status: string) {

@@ -32,7 +32,7 @@ export function CalendarPage() {
         <section className="calendar-board" aria-label="Календар звітів за травень 2026">
           <div className="calendar-month-header">
             <strong>Травень 2026</strong>
-            <span>Notion-style view</span>
+            <span>Місячний огляд</span>
           </div>
           <div className="calendar-weekdays">
             {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"].map((day) => <span key={day}>{day}</span>)}

@@ -232,7 +232,7 @@ export function ObjectDetailPage() {
             <article className="entity-card" key={crew.id}>
               <strong>{crew.name}</strong>
               <span>{crew.specialization}</span>
-              <p>{crew.members.map((member) => `${member.employee?.first_name} ${member.employee?.last_name}`).join(", ")}</p>
+              <p>{crew.members.filter((member) => member.is_active).map((member) => `${member.employee?.first_name} ${member.employee?.last_name}`).join(", ") || "Склад не заповнено"}</p>
             </article>
           ))}
         </div>

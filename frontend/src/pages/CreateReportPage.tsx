@@ -75,7 +75,7 @@ export function CreateReportPage() {
     await Promise.all(mediaFiles.map((file) => api.post("/report-photos", {
       daily_report_id: response.data.id,
       file_name: file.name,
-      file_url: `local-demo://${file.name}`,
+      file_url: `/demo-uploads/${encodeURIComponent(file.name)}`,
       caption: "Додано працівником у формі звіту"
     })));
     pushToast({ tone: "success", title: "Звіт створено", description: "Щоденний звіт відправлено на перевірку." });
@@ -108,7 +108,7 @@ export function CreateReportPage() {
           <div className="hours-row"><span>Розрахований робочий час</span><strong>{workedHours.toFixed(2)} h</strong></div>
           <label className="field">Виконаний обсяг<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="Напр.: 12.5" /></label>
           <label className="field">Опис робіт<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="Напр.: змонтовано кабельні траси, підготовлено головний щит" /></label>
-          <label className="field">Фото / медіа<input type="file" accept="image/*,video/*" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Для MVP зберігається metadata файлів; у production підключається S3/Cloudinary.</span></label>
+          <label className="field">Фото / медіа<input type="file" accept="image/*,video/*" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">У demo-збірці зберігається реєстр файлів для звіту; повний storage-пайплайн підключається окремо.</span></label>
           {formError ? <div className="form-error">{formError}</div> : null}
           {mediaFiles.length > 0 && <div className="file-list">{mediaFiles.map((file) => <span key={file.name}>{file.name}</span>)}</div>}
           <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Надіслати звіт</button>
