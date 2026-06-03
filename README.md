@@ -60,7 +60,12 @@ Frontend URL: `http://localhost:5173`.
 
 ## Tests And CI
 
-Frontend e2e tests cover login, worker mobile flow, daily report creation, calendar, logout, admin dashboard, report filters, report approval, employees and objects pages:
+Frontend e2e tests cover:
+
+- worker login, calendar month switching, report creation and locked final reports;
+- foreman approval stage and report comments;
+- admin final approval, employee access management and payroll CSV export;
+- visual smoke for dashboard object cards and object progress circle.
 
 ```bash
 cd frontend
@@ -77,6 +82,30 @@ CI is configured in `.github/workflows/ci.yml`:
 - Admin: `admin@romans-erp.demo` / `Admin12345`
 - Foreman: `foreman@romans-erp.demo` / `Foreman12345`
 - Worker: `worker@romans-erp.demo` / `Worker12345`
+
+## Approval Flow
+
+Daily reports now use a two-step approval flow:
+
+- `draft` - чернетка або локально збережений звіт;
+- `submitted` - подано працівником, очікує перевірки бригадиром;
+- `foreman_approved` - погоджено бригадиром, очікує фінального підтвердження;
+- `admin_approved` - фінально погоджено, звіт заблоковано для редагування та враховується в payroll;
+- `change_requested` - потрібні уточнення або доопрацювання;
+- `rejected` - відхилено.
+
+Коментарі до звітів доступні на сторінках деталізації та погодження для worker, foreman і admin.
+
+## Payroll / Export
+
+В admin-контурі є сторінка `Оплати`:
+
+- календарний місяць;
+- payroll period `21-20`;
+- custom date range;
+- підсумок по працівниках;
+- перегляд фінально погоджених звітів у межах періоду;
+- CSV export для бухгалтера.
 
 ## Deployment
 

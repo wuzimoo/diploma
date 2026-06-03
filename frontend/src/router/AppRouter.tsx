@@ -11,6 +11,7 @@ import { LoginPage } from "../pages/LoginPage";
 import { MorePage } from "../pages/MorePage";
 import { ObjectsPage } from "../pages/ObjectsPage";
 import { ObjectDetailPage } from "../pages/ObjectDetailPage";
+import { PayrollPage } from "../pages/PayrollPage";
 import { ReportDetailsPage } from "../pages/ReportDetailsPage";
 import { ReportReviewPage } from "../pages/ReportReviewPage";
 import { ReportsListPage } from "../pages/ReportsListPage";
@@ -48,6 +49,7 @@ export function AppRouter() {
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="objects" element={<ObjectsPage />} />
         <Route path="objects/:id" element={<ObjectDetailPage />} />
+        <Route path="payroll" element={<PayrollPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

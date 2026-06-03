@@ -70,7 +70,7 @@ export function CreateReportPage() {
       completed_volume: form.completed_volume ? Number(form.completed_volume) : null,
       media_note: mediaFiles.length ? `${mediaFiles.length} файл(и): ${mediaFiles.map((file) => file.name).join(", ")}` : null,
       worked_hours: workedHours,
-      status: "review"
+      status: "submitted"
     });
     await Promise.all(mediaFiles.map((file) => api.post("/report-photos", {
       daily_report_id: response.data.id,
@@ -78,7 +78,7 @@ export function CreateReportPage() {
       file_url: `/demo-uploads/${encodeURIComponent(file.name)}`,
       caption: "Додано працівником у формі звіту"
     })));
-    pushToast({ tone: "success", title: "Звіт створено", description: "Щоденний звіт відправлено на перевірку." });
+    pushToast({ tone: "success", title: "Звіт створено", description: "Щоденний звіт відправлено на перевірку бригадиру." });
     navigate(`/worker/reports/${response.data.id}`);
   }
 

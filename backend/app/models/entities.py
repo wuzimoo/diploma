@@ -34,6 +34,7 @@ class User(Base, TimestampMixin):
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
     role: Mapped[Role] = relationship(back_populates="users")
     employee: Mapped["Employee | None"] = relationship(back_populates="user", uselist=False)
+    report_comments: Mapped[list["ReportComment"]] = relationship(back_populates="author")
 
 
 class Employee(Base, TimestampMixin):
@@ -162,15 +163,20 @@ class DailyReport(Base, TimestampMixin):
     end_time: Mapped[time] = mapped_column(Time)
     break_minutes: Mapped[int] = mapped_column(Integer, default=30)
     worked_hours: Mapped[float] = mapped_column(Float)
-    status: Mapped[str] = mapped_column(String(30), default="open", index=True)
+    status: Mapped[str] = mapped_column(String(30), default="submitted", index=True)
     work_description: Mapped[str] = mapped_column(Text)
     completed_volume: Mapped[float | None] = mapped_column(Float)
     media_note: Mapped[str | None] = mapped_column(Text)
     rejection_reason: Mapped[str | None] = mapped_column(Text)
+    foreman_reviewed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    foreman_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    admin_reviewed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    admin_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     employee: Mapped[Employee] = relationship(back_populates="daily_reports")
     construction_object: Mapped[ConstructionObject] = relationship(back_populates="daily_reports")
     work_plan_item: Mapped[WorkPlanItem | None] = relationship(back_populates="daily_reports")
     photos: Mapped[list["ReportPhoto"]] = relationship(back_populates="daily_report", cascade="all, delete-orphan")
+    comments: Mapped[list["ReportComment"]] = relationship(back_populates="report", cascade="all, delete-orphan")
 
 
 class ReportPhoto(Base, TimestampMixin):
@@ -182,6 +188,17 @@ class ReportPhoto(Base, TimestampMixin):
     file_url: Mapped[str] = mapped_column(String(500))
     caption: Mapped[str | None] = mapped_column(String(255))
     daily_report: Mapped[DailyReport] = relationship(back_populates="photos")
+
+
+class ReportComment(Base, TimestampMixin):
+    __tablename__ = "report_comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    report_id: Mapped[int] = mapped_column(ForeignKey("daily_reports.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    body: Mapped[str] = mapped_column(Text)
+    report: Mapped[DailyReport] = relationship(back_populates="comments")
+    author: Mapped[User] = relationship(back_populates="report_comments")
 
 
 class Material(Base, TimestampMixin):

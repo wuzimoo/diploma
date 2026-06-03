@@ -45,6 +45,14 @@ class UserOut(ORMModel):
     role: RoleOut
 
 
+class UserAccessOut(ORMModel):
+    id: int
+    email: EmailStr
+    full_name: str
+    is_active: bool
+    role: RoleOut
+
+
 class EmployeeBase(BaseModel):
     user_id: int | None = None
     first_name: str
@@ -53,6 +61,10 @@ class EmployeeBase(BaseModel):
     phone: str | None = None
     hourly_rate: float = 0
     status: str = "active"
+    access_email: EmailStr | None = None
+    access_password: str | None = Field(default=None, min_length=8)
+    access_role_code: str | None = None
+    access_is_active: bool = True
 
 
 class EmployeeCreate(EmployeeBase):
@@ -67,6 +79,10 @@ class EmployeeUpdate(BaseModel):
     phone: str | None = None
     hourly_rate: float | None = None
     status: str | None = None
+    access_email: EmailStr | None = None
+    access_password: str | None = Field(default=None, min_length=8)
+    access_role_code: str | None = None
+    access_is_active: bool | None = None
 
 
 class EmployeeOut(ORMModel):
@@ -78,6 +94,7 @@ class EmployeeOut(ORMModel):
     phone: str | None
     hourly_rate: float
     status: str
+    user: UserAccessOut | None = None
 
 
 class CrewMemberEmployeeOut(EmployeeOut):
@@ -308,7 +325,7 @@ class DailyReportBase(BaseModel):
     end_time: time
     break_minutes: int = Field(default=30, ge=0, le=240)
     worked_hours: float | None = None
-    status: str = "open"
+    status: str = "submitted"
     work_description: str = Field(min_length=5)
     completed_volume: float | None = Field(default=None, ge=0)
     media_note: str | None = None
@@ -370,6 +387,10 @@ class DailyReportOut(ORMModel):
     completed_volume: float | None
     media_note: str | None
     rejection_reason: str | None
+    foreman_reviewed_by_user_id: int | None
+    foreman_reviewed_at: datetime | None
+    admin_reviewed_by_user_id: int | None
+    admin_reviewed_at: datetime | None
     employee: EmployeeOut
     construction_object: ConstructionObjectOut
     work_plan_item: WorkPlanItemOut | None = None
@@ -380,6 +401,48 @@ class DailyReportOut(ORMModel):
 class ReportStatusUpdate(BaseModel):
     status: str
     rejection_reason: str | None = None
+
+
+class ReportCommentCreate(BaseModel):
+    body: str = Field(min_length=1, max_length=4000)
+
+
+class ReportCommentOut(ORMModel):
+    id: int
+    report_id: int
+    user_id: int
+    body: str
+    created_at: datetime
+    author: UserAccessOut
+
+
+class PayrollReportOut(BaseModel):
+    id: int
+    report_number: str
+    report_date: date
+    worked_hours: float
+    status: str
+    construction_object_name: str
+    description: str
+
+
+class PayrollEmployeeSummaryOut(BaseModel):
+    employee_id: int
+    name: str
+    position: str
+    hourly_rate: float
+    approved_hours: float
+    total_payment: float
+    reports_count: int
+    pending_count: int
+    rejected_count: int
+    reports: list[PayrollReportOut]
+
+
+class PayrollSummaryOut(BaseModel):
+    start_date: date
+    end_date: date
+    employees: list[PayrollEmployeeSummaryOut]
 
 
 class MaterialBase(BaseModel):

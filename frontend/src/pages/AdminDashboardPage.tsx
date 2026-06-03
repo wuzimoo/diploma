@@ -13,9 +13,9 @@ export function AdminDashboardPage() {
   return (
     <>
       <section className="summary-grid-desktop">
-        <Link className="summary-tile" to="/admin/reports?status=open"><p>Відкриті звіти</p><strong>{analytics?.report_statuses.open || 0}</strong></Link>
-        <Link className="summary-tile" to="/admin/reports?status=review"><p>На перевірці</p><strong>{analytics?.report_statuses.review || 0}</strong></Link>
-        <Link className="summary-tile" to="/admin/reports?status=approved"><p>Погоджено</p><strong>{analytics?.report_statuses.approved || 0}</strong></Link>
+        <Link className="summary-tile" to="/admin/reports?status=submitted"><p>У бригадира</p><strong>{analytics?.report_statuses.submitted || 0}</strong></Link>
+        <Link className="summary-tile" to="/admin/reports?status=foreman_approved"><p>У адміна</p><strong>{analytics?.report_statuses.foreman_approved || 0}</strong></Link>
+        <Link className="summary-tile" to="/admin/reports?status=admin_approved"><p>Фінально погоджено</p><strong>{analytics?.report_statuses.admin_approved || 0}</strong></Link>
         <Link className="summary-tile" to="/admin/employees"><p>Активні працівники</p><strong>{analytics?.active_employees || 0}</strong></Link>
       </section>
       <section className="table-card stack">

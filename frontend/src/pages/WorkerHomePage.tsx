@@ -42,7 +42,7 @@ export function WorkerHomePage() {
         <section className="summary-card">
           <span className="text-muted">Робочі години в системі</span>
           <strong className="summary-number">{analytics?.total_hours.toFixed(2) || "0.00"} h</strong>
-          <span className="helper">{analytics?.report_statuses.approved || 0} погоджено, {analytics?.report_statuses.review || 0} на перевірці</span>
+          <span className="helper">{analytics?.report_statuses.admin_approved || analytics?.report_statuses.approved || 0} фінально погоджено, {(analytics?.report_statuses.submitted || 0) + (analytics?.report_statuses.foreman_approved || 0)} у перевірці</span>
         </section>
         <section className="stack">
           <div>

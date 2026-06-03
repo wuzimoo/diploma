@@ -15,6 +15,7 @@ from app.models import (
     MaterialRequest,
     MaterialRequestItem,
     ObjectAssignment,
+    ReportComment,
     ReportPhoto,
     Role,
     User,
@@ -30,6 +31,9 @@ def enrich_demo_data(db) -> None:
     worker = db.scalar(select(Employee).where(Employee.last_name == "Meyer"))
     jonas = db.scalar(select(Employee).where(Employee.last_name == "Klein"))
     leon = db.scalar(select(Employee).where(Employee.last_name == "Schulz"))
+    admin_user = db.scalar(select(User).where(User.email == "admin@romans-erp.demo"))
+    foreman_user = db.scalar(select(User).where(User.email == "foreman@romans-erp.demo"))
+    worker_user = db.scalar(select(User).where(User.email == "worker@romans-erp.demo"))
     if not all([berlin_ost, berlin_mitte, potsdam, foreman, worker, jonas, leon]):
         return
 
@@ -106,11 +110,11 @@ def enrich_demo_data(db) -> None:
     ost_plan = db.scalar(select(WorkPlanItem).where(WorkPlanItem.construction_object_id == berlin_ost.id, WorkPlanItem.title == "Монтаж кабельних трас секція C"))
     potsdam_plan = db.scalar(select(WorkPlanItem).where(WorkPlanItem.construction_object_id == potsdam.id, WorkPlanItem.title == "Основа під металоконструкції"))
     demo_reports = [
-        ("DR-2026-0042", worker, berlin_ost, ost_plan, date(2026, 5, 29), "review", 7.75, 18, "Змонтовано кабельні траси на 2-му поверсі секції C, промарковано групи, додано фотофіксацію."),
-        ("DR-2026-0041", jonas, potsdam, potsdam_plan, date(2026, 5, 28), "open", 8.17, 24, "Підготовлено основу під металоконструкції, виставлено анкери, очікується перевірка бригадира."),
-        ("DR-2026-0040", leon, berlin_ost, None, date(2026, 5, 27), "approved", 8.5, 16, "Прокладено PEX лінії у санвузлах секції C та виконано первинний контроль герметичності."),
+        ("DR-2026-0042", worker, berlin_ost, ost_plan, date(2026, 5, 29), "submitted", 7.75, 18, "Змонтовано кабельні траси на 2-му поверсі секції C, промарковано групи, додано фотофіксацію.", None, None),
+        ("DR-2026-0041", jonas, potsdam, potsdam_plan, date(2026, 5, 28), "foreman_approved", 8.17, 24, "Підготовлено основу під металоконструкції, виставлено анкери, очікується фінальна перевірка адміністратора.", foreman_user.id if foreman_user else None, None),
+        ("DR-2026-0040", leon, berlin_ost, None, date(2026, 5, 27), "admin_approved", 8.5, 16, "Прокладено PEX лінії у санвузлах секції C та виконано первинний контроль герметичності.", foreman_user.id if foreman_user else None, admin_user.id if admin_user else None),
     ]
-    for number, employee, obj, plan, report_date, status, hours, completed_volume, description in demo_reports:
+    for number, employee, obj, plan, report_date, status, hours, completed_volume, description, foreman_user_id, admin_user_id in demo_reports:
         exists = db.scalar(select(DailyReport).where(DailyReport.report_number == number))
         if exists:
             continue
@@ -128,11 +132,17 @@ def enrich_demo_data(db) -> None:
             completed_volume=completed_volume,
             media_note="2 файл(и): site-progress.jpg, measurement.jpg" if number == "DR-2026-0042" else None,
             work_description=description,
+            foreman_reviewed_by_user_id=foreman_user_id,
+            admin_reviewed_by_user_id=admin_user_id,
         )
         db.add(report)
         db.flush()
         if number == "DR-2026-0042":
             db.add(ReportPhoto(daily_report=report, file_name="site-progress.jpg", file_url="https://placehold.co/900x650?text=Site+Progress", caption="Хід робіт секція C"))
+            if worker_user:
+                db.add(ReportComment(daily_report=report, author=worker_user, body="Додав фото з другого поверху та оновив виконаний обсяг."))
+            if foreman_user:
+                db.add(ReportComment(daily_report=report, author=foreman_user, body="Перевіряю трасування. Якщо все ок, передам на фінальне погодження."))
 
     db.commit()
 
@@ -195,11 +205,11 @@ def run_seed() -> None:
         enrich_demo_data(db)
 
         reports = [
-            DailyReport(report_number="DR-2026-0031", employee=employees[2], construction_object=objects[0], report_date=date(2026, 3, 21), start_time=time(8, 0), end_time=time(15, 45), break_minutes=0, worked_hours=7.75, status="review", work_description="Змонтовано кабельні траси на 1-му поверсі, перевірено постачання матеріалів, позначено позицію щита."),
-            DailyReport(report_number="DR-2026-0030", employee=employees[3], construction_object=objects[2], report_date=date(2026, 3, 20), start_time=time(7, 20), end_time=time(16, 0), break_minutes=30, worked_hours=8.17, status="open", work_description="Підготовлено основу під монтаж металоконструкцій, виконано приймання профілів."),
-            DailyReport(report_number="DR-2026-0029", employee=employees[4], construction_object=objects[1], report_date=date(2026, 3, 19), start_time=time(8, 10), end_time=time(17, 0), break_minutes=20, worked_hours=8.5, status="approved", work_description="Прокладено водопровідні лінії у секції C, виконано перевірку герметичності."),
-            DailyReport(report_number="DR-2026-0028", employee=employees[2], construction_object=objects[1], report_date=date(2026, 3, 18), start_time=time(7, 30), end_time=time(16, 0), break_minutes=30, worked_hours=8.0, status="approved", work_description="Підключено тимчасове освітлення, промарковано кабельні групи."),
-            DailyReport(report_number="DR-2026-0027", employee=employees[2], construction_object=objects[3], report_date=date(2026, 3, 15), start_time=time(8, 15), end_time=time(17, 0), break_minutes=30, worked_hours=8.25, status="approved", work_description="Огляд майданчика, фіксація точок підведення живлення, підготовка списку матеріалів."),
+            DailyReport(report_number="DR-2026-0031", employee=employees[2], construction_object=objects[0], report_date=date(2026, 3, 21), start_time=time(8, 0), end_time=time(15, 45), break_minutes=0, worked_hours=7.75, status="submitted", work_description="Змонтовано кабельні траси на 1-му поверсі, перевірено постачання матеріалів, позначено позицію щита."),
+            DailyReport(report_number="DR-2026-0030", employee=employees[3], construction_object=objects[2], report_date=date(2026, 3, 20), start_time=time(7, 20), end_time=time(16, 0), break_minutes=30, worked_hours=8.17, status="foreman_approved", foreman_reviewed_by_user_id=users[1].id, work_description="Підготовлено основу під монтаж металоконструкцій, виконано приймання профілів."),
+            DailyReport(report_number="DR-2026-0029", employee=employees[4], construction_object=objects[1], report_date=date(2026, 3, 19), start_time=time(8, 10), end_time=time(17, 0), break_minutes=20, worked_hours=8.5, status="admin_approved", foreman_reviewed_by_user_id=users[1].id, admin_reviewed_by_user_id=users[0].id, work_description="Прокладено водопровідні лінії у секції C, виконано перевірку герметичності."),
+            DailyReport(report_number="DR-2026-0028", employee=employees[2], construction_object=objects[1], report_date=date(2026, 3, 18), start_time=time(7, 30), end_time=time(16, 0), break_minutes=30, worked_hours=8.0, status="admin_approved", foreman_reviewed_by_user_id=users[1].id, admin_reviewed_by_user_id=users[0].id, work_description="Підключено тимчасове освітлення, промарковано кабельні групи."),
+            DailyReport(report_number="DR-2026-0027", employee=employees[2], construction_object=objects[3], report_date=date(2026, 3, 15), start_time=time(8, 15), end_time=time(17, 0), break_minutes=30, worked_hours=8.25, status="admin_approved", foreman_reviewed_by_user_id=users[1].id, admin_reviewed_by_user_id=users[0].id, work_description="Огляд майданчика, фіксація точок підведення живлення, підготовка списку матеріалів."),
             DailyReport(report_number="DR-2026-0026", employee=employees[3], construction_object=objects[0], report_date=date(2026, 3, 14), start_time=time(8, 0), end_time=time(14, 30), break_minutes=30, worked_hours=6.0, status="rejected", rejection_reason="Не вистачає фото підтвердження", work_description="Монтаж кріплень для кабельних трас."),
         ]
         db.add_all(reports)
@@ -210,6 +220,9 @@ def run_seed() -> None:
                 ReportPhoto(daily_report=reports[0], file_name="trasa-1.jpg", file_url="https://placehold.co/900x650?text=Trasa+1", caption="Траса, 1-й поверх"),
                 ReportPhoto(daily_report=reports[0], file_name="shield.jpg", file_url="https://placehold.co/900x650?text=Shield", caption="Позиція електрощита"),
                 ReportPhoto(daily_report=reports[0], file_name="materials.jpg", file_url="https://placehold.co/900x650?text=Materials", caption="Матеріали на об'єкті"),
+                ReportComment(daily_report=reports[0], author=users[2], body="Завантажив фото та уточнив позицію щита."),
+                ReportComment(daily_report=reports[0], author=users[1], body="Потрібна додаткова перевірка перед фінальним погодженням."),
+                ReportComment(daily_report=reports[2], author=users[0], body="Фінально погоджено для включення в payroll."),
             ]
         )
 

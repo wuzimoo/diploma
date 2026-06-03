@@ -14,6 +14,8 @@ export interface User {
   role: Role;
 }
 
+export interface UserAccess extends User {}
+
 export interface Employee {
   id: number;
   user_id?: number | null;
@@ -23,6 +25,7 @@ export interface Employee {
   phone?: string | null;
   hourly_rate: number;
   status: string;
+  user?: UserAccess | null;
 }
 
 export interface ConstructionObject {
@@ -120,11 +123,24 @@ export interface DailyReport {
   completed_volume?: number | null;
   media_note?: string | null;
   rejection_reason?: string | null;
+  foreman_reviewed_by_user_id?: number | null;
+  foreman_reviewed_at?: string | null;
+  admin_reviewed_by_user_id?: number | null;
+  admin_reviewed_at?: string | null;
   employee: Employee;
   construction_object: ConstructionObject;
   work_plan_item?: WorkPlanItem | null;
   photos: ReportPhoto[];
   created_at: string;
+}
+
+export interface ReportComment {
+  id: number;
+  report_id: number;
+  user_id: number;
+  body: string;
+  created_at: string;
+  author: UserAccess;
 }
 
 export interface Material {
@@ -170,11 +186,13 @@ export interface CalendarDay {
   date: string;
   count: number;
   hours: number;
-  open_count: number;
-  review_count: number;
-  approved_count: number;
+  draft_count: number;
+  submitted_count: number;
+  foreman_approved_count: number;
+  admin_approved_count: number;
   rejected_count: number;
-  severity: "ok" | "warning" | "danger";
+  change_requested_count: number;
+  severity: "neutral" | "ok" | "warning" | "danger";
   reports: {
     id: number;
     report_number: string;
@@ -184,4 +202,33 @@ export interface CalendarDay {
     hours: number;
     description: string;
   }[];
+}
+
+export interface PayrollReport {
+  id: number;
+  report_number: string;
+  report_date: string;
+  worked_hours: number;
+  status: string;
+  construction_object_name: string;
+  description: string;
+}
+
+export interface PayrollEmployeeSummary {
+  employee_id: number;
+  name: string;
+  position: string;
+  hourly_rate: number;
+  approved_hours: number;
+  total_payment: number;
+  reports_count: number;
+  pending_count: number;
+  rejected_count: number;
+  reports: PayrollReport[];
+}
+
+export interface PayrollSummary {
+  start_date: string;
+  end_date: string;
+  employees: PayrollEmployeeSummary[];
 }

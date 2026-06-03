@@ -355,6 +355,8 @@ p {
   border-radius: 8px;
   padding: 18px;
   box-shadow: var(--shadow);
+  min-height: 132px;
+  min-width: 0;
 }
 
 .summary-tile p {
@@ -401,6 +403,7 @@ p {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .report-meta {
@@ -707,6 +710,14 @@ textarea {
   gap: 12px;
 }
 
+.analytics-bars .bar-row {
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, 2fr) auto;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
 .bar-row div {
   height: 12px;
   background: #eceff3;
@@ -764,6 +775,13 @@ textarea {
   color: #18212d;
 }
 
+.object-progress-card {
+  display: grid;
+  justify-items: end;
+  align-items: center;
+  min-width: 140px;
+}
+
 .object-hero {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -794,23 +812,37 @@ textarea {
 .progress-ring {
   width: 124px;
   height: 124px;
+  position: relative;
   display: grid;
   place-items: center;
+  border-radius: 999px;
+  background: conic-gradient(#67c887 var(--progress, 72%), #394150 0);
+  border: 1px solid #3f4857;
+}
+
+.progress-ring-inner {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
   text-align: center;
   border-radius: 999px;
-  background: radial-gradient(circle at center, #111827 54%, transparent 55%), conic-gradient(#45c486 var(--progress, 72%), #394150 0);
-  border: 1px solid #3f4857;
+  background: #111827;
 }
 
 .progress-ring strong {
   display: block;
-  font-size: 1.85rem;
+  line-height: 1;
+  font-size: 1.9rem;
 }
 
 .progress-ring span {
   display: block;
   color: #cdd5e1;
   font-size: 0.78rem;
+  line-height: 1.2;
 }
 
 .planner-list {
@@ -906,12 +938,17 @@ textarea {
 }
 
 .employee-card-header {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
 }
 
 .employee-card-role {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.94rem;
+  font-weight: 700;
 }
 
 .planner-fields {
@@ -957,6 +994,10 @@ textarea {
   padding: 20px;
 }
 
+.wide-modal {
+  width: min(860px, 100%);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -984,6 +1025,7 @@ textarea {
 .calendar-month-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   color: #202733;
 }
 
@@ -998,6 +1040,12 @@ textarea {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
+}
+
+.calendar-empty {
+  min-height: 76px;
+  border-radius: 8px;
+  background: transparent;
 }
 
 .calendar-cell {
@@ -1015,9 +1063,19 @@ textarea {
   cursor: pointer;
 }
 
+.calendar-cell strong {
+  font-size: 0.95rem;
+}
+
 .calendar-cell span {
   color: var(--muted);
   font-size: 0.76rem;
+}
+
+.calendar-cell.success,
+.calendar-cell.ok {
+  background: #f5fff8;
+  border-color: #c4e6cf;
 }
 
 .calendar-cell.warning {
@@ -1035,14 +1093,130 @@ textarea {
   outline-offset: 1px;
 }
 
-.calendar-cell i {
-  position: absolute;
-  right: 7px;
-  bottom: 7px;
-  width: 8px;
-  height: 8px;
+.calendar-indicator {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  background: var(--warning);
+  border: 1px solid transparent;
+}
+
+.calendar-indicator.neutral {
+  background: #f1f3f7;
+  color: #677080;
+  border-color: #d7dce3;
+}
+
+.calendar-indicator.warning {
+  background: #fff4d8;
+  color: #8a5b00;
+  border-color: #f0d8aa;
+}
+
+.calendar-indicator.success {
+  background: #ecfaef;
+  color: #106c36;
+  border-color: #b8e7c8;
+}
+
+.calendar-indicator.danger {
+  background: #fff0ee;
+  color: var(--danger);
+  border-color: #f5c2bb;
+}
+
+.calendar-cell-meta {
+  min-height: 18px;
+}
+
+.calendar-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.calendar-pill-label {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.employee-access-row,
+.planner-meta,
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.access-form {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.access-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-alt);
+  padding: 16px;
+}
+
+.access-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.access-actions {
+  display: grid;
+  gap: 10px;
+  align-content: end;
+}
+
+.comments-list {
+  display: grid;
+  gap: 12px;
+}
+
+.comment-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+
+.payroll-filters {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.report-stage-grid .summary-tile strong {
+  font-size: 1.1rem;
+}
+
+.entity-card.object-progress-card {
+  gap: 14px;
+  min-height: 172px;
+}
+
+.entity-card.object-progress-card .report-item-top {
+  align-items: flex-start;
+}
+
+.entity-card.object-progress-card .badge,
+.object-progress-card .progress-ring {
+  flex-shrink: 0;
+}
+
+.entity-card.object-progress-card .mini-progress {
+  margin-top: auto;
 }
 
 .loading-screen {
@@ -1067,8 +1241,14 @@ textarea {
   .bar-row,
   .inline-form,
   .object-hero,
-  .planner-fields {
+  .planner-fields,
+  .access-fields,
+  .payroll-filters {
     grid-template-columns: 1fr;
+  }
+
+  .summary-tile {
+    min-height: 112px;
   }
 
   .calendar-cell {
@@ -1076,10 +1256,27 @@ textarea {
     padding: 6px;
   }
 
+  .calendar-empty {
+    min-height: 62px;
+  }
+
+  .calendar-cell-meta {
+    display: none;
+  }
+
+  .calendar-weekdays span {
+    font-size: 0.72rem;
+  }
+
   .progress-ring {
     width: 112px;
     height: 112px;
     justify-self: start;
+  }
+
+  .progress-ring-inner {
+    width: 80px;
+    height: 80px;
   }
 
   .wide-field {
@@ -1096,6 +1293,16 @@ textarea {
 
   .bar-row.compact {
     grid-template-columns: 1fr;
+  }
+
+  .object-progress-card,
+  .entity-card.object-progress-card {
+    justify-items: stretch;
+  }
+
+  .object-progress-card .progress-ring,
+  .entity-card.object-progress-card .badge {
+    justify-self: start;
   }
 
   .report-item-top,

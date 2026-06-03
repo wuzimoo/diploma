@@ -8,6 +8,20 @@ import { useToast } from "../hooks/useToast";
 import { api } from "../services/api";
 import { ObjectSummary, WorkPlanItem } from "../types/api";
 
+const PLAN_STATUS_LABELS: Record<string, string> = {
+  planned: "Заплановано",
+  in_progress: "У роботі",
+  done: "Завершено",
+  blocked: "Заблоковано",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  low: "Низький",
+  normal: "Нормальний",
+  high: "Високий",
+  urgent: "Терміновий",
+};
+
 export function ObjectDetailPage() {
   const { id } = useParams();
   const { pushToast } = useToast();
@@ -139,7 +153,14 @@ export function ObjectDetailPage() {
           </div>
           <p>{summary.object.description}</p>
         </div>
-        <div className="progress-ring" style={{ "--progress": `${planPercent}%` } as CSSProperties} aria-label={`Прогрес ${planPercent}%`}><strong>{planPercent}%</strong><span>виконано</span></div>
+        <div className="object-progress-card">
+          <div className="progress-ring" style={{ "--progress": `${planPercent}%` } as CSSProperties} aria-label={`Прогрес ${planPercent}%`}>
+            <div className="progress-ring-inner">
+              <strong>{planPercent}%</strong>
+              <span>виконано</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="summary-grid-desktop">
@@ -189,10 +210,10 @@ export function ObjectDetailPage() {
             <div className="field-row planner-fields">
               <label className="field">Одиниця<input value={planForm.unit} onChange={(event) => setPlanForm({ ...planForm, unit: event.target.value })} /></label>
               <label className="field">Статус<select value={planForm.status} onChange={(event) => setPlanForm({ ...planForm, status: event.target.value })}>
-                <option value="planned">planned</option>
-                <option value="in_progress">in_progress</option>
-                <option value="done">done</option>
-                <option value="blocked">blocked</option>
+                <option value="planned">Заплановано</option>
+                <option value="in_progress">У роботі</option>
+                <option value="done">Завершено</option>
+                <option value="blocked">Заблоковано</option>
               </select></label>
             </div>
             <div className="field-row planner-fields">
@@ -201,10 +222,10 @@ export function ObjectDetailPage() {
             </div>
             <div className="section-head">
               <label className="field planner-priority">Пріоритет<select value={planForm.priority} onChange={(event) => setPlanForm({ ...planForm, priority: event.target.value })}>
-                <option value="low">low</option>
-                <option value="normal">normal</option>
-                <option value="high">high</option>
-                <option value="urgent">urgent</option>
+                <option value="low">Низький</option>
+                <option value="normal">Нормальний</option>
+                <option value="high">Високий</option>
+                <option value="urgent">Терміновий</option>
               </select></label>
               <button className="btn btn-primary" type="submit">{editingPlan ? "Зберегти" : "Створити етап"}</button>
             </div>
@@ -218,6 +239,10 @@ export function ObjectDetailPage() {
               <article className="planner-item" key={item.id}>
                 <div className="report-item-top"><strong>{item.title}</strong><div className="planner-actions"><StatusBadge status={item.status} /><button className="icon-btn" type="button" aria-label={`Редагувати ${item.title}`} onClick={() => openEditPlan(item)}><Pencil size={16} /></button></div></div>
                 <p>{item.description}</p>
+                <div className="planner-meta">
+                  <span>{PLAN_STATUS_LABELS[item.status] || item.status}</span>
+                  <span>Пріоритет: {PRIORITY_LABELS[item.priority] || item.priority}</span>
+                </div>
                 <div className="bar-row compact"><span>{item.completed_volume}/{item.planned_volume} {item.unit}</span><div><i style={{ width: `${percent}%` }} /></div><strong>{percent}%</strong></div>
               </article>
             );

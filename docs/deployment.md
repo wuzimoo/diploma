@@ -48,3 +48,13 @@ Current Vercel deployment:
 
 - https://diploma-mu6e1osvh-daniils-projects-5bff5a67.vercel.app
 - Alias: https://diploma-ochre.vercel.app
+
+## Deployment Notes For New Features
+
+After deploying backend changes that affect the report workflow:
+
+- run `alembic upgrade head`;
+- rerun `python -m app.db.seed` to refresh demo comments and updated report statuses in a clean environment;
+- ensure Vercel uses the same backend API URL after redeploy.
+
+No additional third-party storage is required for comments or payroll export in the current MVP.

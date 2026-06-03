@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { ReportComments } from "../components/ReportComments";
 import { StatusBadge } from "../components/StatusBadge";
+import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/useToast";
 import { api } from "../services/api";
 import { DailyReport } from "../types/api";
 
+const STAGE_LABELS: Record<string, string> = {
+  draft: "Чернетка",
+  submitted: "Очікує бригадира",
+  foreman_approved: "Очікує адміністратора",
+  admin_approved: "Фінально погоджено",
+  rejected: "Відхилено",
+  change_requested: "Потрібні зміни",
+};
+
 export function ReportReviewPage() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const { pushToast } = useToast();
   const [report, setReport] = useState<DailyReport | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -18,14 +32,26 @@ export function ReportReviewPage() {
 
   async function setStatus(status: string) {
     setSaving(true);
-    await api.patch(`/daily-reports/${id}/status`, { status, rejection_reason: status === "rejected" ? "Потрібно уточнити опис робіт або додати фото." : null });
-    await api.get<DailyReport>(`/daily-reports/${id}`).then((response) => setReport(response.data));
-    setSaving(false);
+    try {
+      await api.patch(`/daily-reports/${id}/status`, { status, rejection_reason: status === "rejected" || status === "change_requested" ? "Потрібно уточнити опис робіт або додати фото." : null });
+      await api.get<DailyReport>(`/daily-reports/${id}`).then((response) => setReport(response.data));
+      pushToast({
+        tone: "success",
+        title: status === "foreman_approved" ? "Звіт погоджено бригадиром" : status === "admin_approved" ? "Звіт фінально погоджено" : "Статус оновлено",
+        description: "Зміни до етапу погодження збережено."
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!report) {
     return <section className="table-card">Завантаження...</section>;
   }
+
+  const roleCode = user?.role.code;
+  const foremanActions = roleCode === "foreman";
+  const adminActions = roleCode === "admin";
 
   return (
     <div className="review-layout">
@@ -49,17 +75,24 @@ export function ReportReviewPage() {
         <div className="photo-grid">
           {report.photos.length ? report.photos.map((photo) => <div className="photo-card" key={photo.id}>{photo.caption || photo.file_name}</div>) : <div className="photo-card">Фото не додано</div>}
         </div>
+        <div className="summary-grid-desktop report-stage-grid">
+          <article className="summary-tile"><p>Етап</p><strong>{STAGE_LABELS[report.status] || report.status}</strong></article>
+          <article className="summary-tile"><p>Бригадир</p><strong>{report.foreman_reviewed_at ? new Date(report.foreman_reviewed_at).toLocaleString("uk-UA") : "Очікується"}</strong></article>
+          <article className="summary-tile"><p>Адміністратор</p><strong>{report.admin_reviewed_at ? new Date(report.admin_reviewed_at).toLocaleString("uk-UA") : "Очікується"}</strong></article>
+        </div>
+        <ReportComments reportId={report.id} />
       </section>
       <aside className="table-card stack sticky-actions">
         <div>
           <h2 className="section-title">Погодження</h2>
-          <p className="section-subtitle">Статус і дії</p>
+          <p className="section-subtitle">Статус, етап і доступні дії</p>
         </div>
         <div className="summary-card"><span className="text-muted">Поточний статус</span><StatusBadge status={report.status} /></div>
-        <button className="btn btn-primary btn-block" disabled={saving} onClick={() => setStatus("approved")} type="button">Погодити</button>
+        {foremanActions ? <button className="btn btn-primary btn-block" disabled={saving} onClick={() => setStatus("foreman_approved")} type="button">Погодити як бригадир</button> : null}
+        {adminActions ? <button className="btn btn-primary btn-block" disabled={saving || report.status !== "foreman_approved"} onClick={() => setStatus("admin_approved")} type="button">Фінально погодити</button> : null}
         <button className="btn btn-ghost btn-block" disabled={saving} onClick={() => setStatus("rejected")} type="button">Відхилити</button>
-        <button className="btn btn-secondary btn-block" disabled={saving} onClick={() => setStatus("review")} type="button">Повернути на перевірку</button>
-        <div className="warning-note">Погодження підтверджує години для зарплатного та об'єктного обліку.</div>
+        <button className="btn btn-secondary btn-block" disabled={saving} onClick={() => setStatus("change_requested")} type="button">Потрібні зміни</button>
+        <div className="warning-note">Worker подає звіт, foreman виконує первинну перевірку, admin завершує фінальне погодження для payroll.</div>
         <Link className="btn btn-link btn-block" to="/admin/reports">Повернутися до списку</Link>
       </aside>
     </div>

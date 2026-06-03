@@ -27,10 +27,36 @@ Most list endpoints support `skip`, `limit`, and relevant search/filter paramete
 - `PATCH /daily-reports/{id}/status`
 - `GET /dashboard/analytics`
 - `GET /calendar/report-summary`
+- `GET /calendar/detailed?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD`
+
+## Report Workflow
+
+- `POST /daily-reports`
+- `PATCH /daily-reports/{id}`
+- `GET /daily-reports/{id}`
+- `PATCH /daily-reports/{id}/status`
+
+Statuses:
+
+- `draft`
+- `submitted`
+- `foreman_approved`
+- `admin_approved`
+- `change_requested`
+- `rejected`
+
+## Report Comments
+
+- `GET /reports/{id}/comments`
+- `POST /reports/{id}/comments`
+
+## Payroll
+
+- `GET /payroll/summary?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+- `GET /payroll/export.csv?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
 
 ## Auth Header
 
 ```http
 Authorization: Bearer <token>
 ```
-

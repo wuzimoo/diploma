@@ -1,6 +1,8 @@
-from datetime import date
+import csv
+from datetime import UTC, date, datetime
+from io import StringIO
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -18,6 +20,7 @@ from app.models import (
     MaterialRequest,
     MaterialRequestItem,
     ObjectAssignment,
+    ReportComment,
     ReportPhoto,
     Role,
     User,
@@ -56,8 +59,11 @@ from app.schemas import (
     MaterialRequestUpdate,
     MaterialUpdate,
     ObjectSummaryOut,
+    PayrollSummaryOut,
     ReportPhotoCreate,
     ReportPhotoOut,
+    ReportCommentCreate,
+    ReportCommentOut,
     ReportStatusUpdate,
     UserCreate,
     UserOut,
@@ -70,6 +76,144 @@ from app.services.crud import create_item, delete_item, get_or_404, list_query, 
 from app.utils.dates import calculate_worked_hours
 
 router = APIRouter()
+
+REPORT_EDITABLE_STATUSES = {"draft", "rejected", "change_requested"}
+PAYROLL_FINAL_STATUSES = {"admin_approved", "approved"}
+
+
+def employee_query():
+    return select(Employee).options(selectinload(Employee.user).selectinload(User.role))
+
+
+def report_query(db: Session):
+    return select(DailyReport).options(
+        selectinload(DailyReport.employee).selectinload(Employee.user).selectinload(User.role),
+        selectinload(DailyReport.construction_object),
+        selectinload(DailyReport.work_plan_item),
+        selectinload(DailyReport.photos),
+    )
+
+
+def role_by_code(db: Session, code: str) -> Role:
+    role = db.scalar(select(Role).where(Role.code == code))
+    if not role:
+        raise HTTPException(status_code=400, detail=f"Unknown role code: {code}")
+    return role
+
+
+def employee_full_name(first_name: str, last_name: str) -> str:
+    return f"{first_name.strip()} {last_name.strip()}".strip()
+
+
+def apply_employee_access(db: Session, employee: Employee, access_email: str | None, access_password: str | None, access_role_code: str | None, access_is_active: bool | None) -> None:
+    if access_email is None and access_password is None and access_role_code is None and access_is_active is None:
+        return
+
+    if access_email and employee.user and employee.user.email != access_email:
+        conflict = db.scalar(select(User).where(User.email == access_email, User.id != employee.user.id))
+        if conflict:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Користувач з таким email уже існує")
+    elif access_email and not employee.user:
+        conflict = db.scalar(select(User).where(User.email == access_email))
+        if conflict:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Користувач з таким email уже існує")
+
+    if employee.user is None:
+        if not access_email:
+            return
+        if not access_password:
+            raise HTTPException(status_code=400, detail="Для створення доступу потрібен тимчасовий пароль")
+        role = role_by_code(db, access_role_code or "worker")
+        user = User(
+            email=access_email,
+            full_name=employee_full_name(employee.first_name, employee.last_name),
+            hashed_password=get_password_hash(access_password),
+            is_active=access_is_active if access_is_active is not None else True,
+            role=role,
+        )
+        db.add(user)
+        db.flush()
+        employee.user = user
+        employee.user_id = user.id
+        return
+
+    user = employee.user
+    if access_email:
+        user.email = access_email
+    if access_password:
+        user.hashed_password = get_password_hash(access_password)
+    if access_role_code:
+        user.role = role_by_code(db, access_role_code)
+    if access_is_active is not None:
+        user.is_active = access_is_active
+    user.full_name = employee_full_name(employee.first_name, employee.last_name)
+
+
+def normalize_report_status(value: str) -> str:
+    mapping = {
+        "open": "submitted",
+        "review": "submitted",
+        "approved": "admin_approved",
+    }
+    return mapping.get(value, value)
+
+
+def calendar_severity_for_statuses(statuses: set[str]) -> str:
+    normalized = {normalize_report_status(status) for status in statuses}
+    if "rejected" in normalized or "change_requested" in normalized:
+        return "danger"
+    if "submitted" in normalized or "foreman_approved" in normalized or "draft" in normalized:
+        return "warning"
+    if "admin_approved" in normalized:
+        return "ok"
+    return "neutral"
+
+
+def build_payroll_summary(db: Session, start_date: date, end_date: date) -> dict:
+    employees = list(db.scalars(employee_query().where(Employee.status == "active").order_by(Employee.first_name, Employee.last_name)).all())
+    reports = list(
+        db.scalars(
+            report_query(db)
+            .where(
+                DailyReport.report_date >= start_date,
+                DailyReport.report_date <= end_date,
+            )
+            .order_by(DailyReport.report_date, DailyReport.id)
+        ).all()
+    )
+    summary_rows = []
+    for employee in employees:
+        employee_reports = [report for report in reports if report.employee_id == employee.id]
+        final_reports = [report for report in employee_reports if normalize_report_status(report.status) == "admin_approved"]
+        pending_reports = [report for report in employee_reports if normalize_report_status(report.status) in {"submitted", "foreman_approved", "draft", "change_requested"}]
+        rejected_reports = [report for report in employee_reports if normalize_report_status(report.status) == "rejected"]
+        approved_hours = round(sum(float(report.worked_hours or 0) for report in final_reports), 2)
+        summary_rows.append(
+            {
+                "employee_id": employee.id,
+                "name": f"{employee.first_name} {employee.last_name}",
+                "position": employee.position,
+                "hourly_rate": float(employee.hourly_rate or 0),
+                "approved_hours": approved_hours,
+                "total_payment": round(approved_hours * float(employee.hourly_rate or 0), 2),
+                "reports_count": len(final_reports),
+                "pending_count": len(pending_reports),
+                "rejected_count": len(rejected_reports),
+                "reports": [
+                    {
+                        "id": report.id,
+                        "report_number": report.report_number,
+                        "report_date": report.report_date,
+                        "worked_hours": float(report.worked_hours or 0),
+                        "status": normalize_report_status(report.status),
+                        "construction_object_name": report.construction_object.name,
+                        "description": report.work_description,
+                    }
+                    for report in final_reports
+                ],
+            }
+        )
+    return {"start_date": start_date, "end_date": end_date, "employees": summary_rows}
 
 
 @router.get("/health", tags=["system"])
@@ -117,22 +261,57 @@ def delete_user(item_id: int, db: Session = Depends(get_db), _: User = Depends(r
 
 @router.get("/employees", response_model=list[EmployeeOut], tags=["employees"])
 def list_employees(skip: int = 0, limit: int = 50, search: str | None = None, status_filter: str | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[Employee]:
-    return list_query(db, Employee, skip=skip, limit=limit, search=search, search_fields=[Employee.first_name, Employee.last_name, Employee.position], filters={"status": status_filter})
+    stmt = employee_query()
+    if status_filter:
+        stmt = stmt.where(Employee.status == status_filter)
+    if search:
+        pattern = f"%{search}%"
+        stmt = stmt.where(
+            Employee.first_name.ilike(pattern)
+            | Employee.last_name.ilike(pattern)
+            | Employee.position.ilike(pattern)
+            | User.email.ilike(pattern)
+        )
+        stmt = stmt.join(User, isouter=True)
+    stmt = stmt.order_by(Employee.first_name, Employee.last_name).offset(skip).limit(min(limit, 100))
+    return list(db.scalars(stmt).unique().all())
 
 
 @router.post("/employees", response_model=EmployeeOut, status_code=status.HTTP_201_CREATED, tags=["employees"])
 def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Employee:
-    return create_item(db, Employee, payload.model_dump())
+    data = payload.model_dump()
+    access_email = data.pop("access_email", None)
+    access_password = data.pop("access_password", None)
+    access_role_code = data.pop("access_role_code", None)
+    access_is_active = data.pop("access_is_active", True)
+    employee = Employee(**data)
+    db.add(employee)
+    db.flush()
+    apply_employee_access(db, employee, access_email, access_password, access_role_code, access_is_active)
+    db.commit()
+    return db.scalar(employee_query().where(Employee.id == employee.id))
 
 
 @router.get("/employees/{item_id}", response_model=EmployeeOut, tags=["employees"])
 def get_employee(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> Employee:
-    return get_or_404(db, Employee, item_id)
+    item = db.scalar(employee_query().where(Employee.id == item_id))
+    if not item:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return item
 
 
 @router.patch("/employees/{item_id}", response_model=EmployeeOut, tags=["employees"])
 def update_employee(item_id: int, payload: EmployeeUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Employee:
-    return update_item(db, get_or_404(db, Employee, item_id), payload.model_dump(exclude_unset=True))
+    data = payload.model_dump(exclude_unset=True)
+    access_email = data.pop("access_email", None) if "access_email" in data else None
+    access_password = data.pop("access_password", None) if "access_password" in data else None
+    access_role_code = data.pop("access_role_code", None) if "access_role_code" in data else None
+    access_is_active = data.pop("access_is_active", None) if "access_is_active" in data else None
+    employee = get_or_404(db, Employee, item_id)
+    update_item(db, employee, data)
+    apply_employee_access(db, employee, access_email, access_password, access_role_code, access_is_active)
+    db.commit()
+    return db.scalar(employee_query().where(Employee.id == item_id))
 
 
 @router.delete("/employees/{item_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["employees"])
@@ -313,11 +492,6 @@ def create_work_plan_item(payload: WorkPlanItemCreate, db: Session = Depends(get
 def update_work_plan_item(item_id: int, payload: WorkPlanItemUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> WorkPlanItem:
     return update_item(db, get_or_404(db, WorkPlanItem, item_id), payload.model_dump(exclude_unset=True))
 
-
-def report_query(db: Session):
-    return select(DailyReport).options(selectinload(DailyReport.employee), selectinload(DailyReport.construction_object), selectinload(DailyReport.work_plan_item), selectinload(DailyReport.photos))
-
-
 @router.get("/daily-reports", response_model=list[DailyReportOut], tags=["daily reports"])
 def list_reports(
     skip: int = 0,
@@ -353,6 +527,7 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), _: 
     data = payload.model_dump()
     data["report_number"] = data["report_number"] or next_report_number(db)
     data["worked_hours"] = data["worked_hours"] or calculate_worked_hours(data["start_time"], data["end_time"], data["break_minutes"])
+    data["status"] = normalize_report_status(data.get("status") or "submitted")
     item = create_item(db, DailyReport, data)
     if item.work_plan_item_id and item.completed_volume:
         plan = get_or_404(db, WorkPlanItem, item.work_plan_item_id)
@@ -377,19 +552,46 @@ def get_report(item_id: int, db: Session = Depends(get_db), _: User = Depends(ge
 def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> DailyReport:
     data = payload.model_dump(exclude_unset=True)
     item = get_or_404(db, DailyReport, item_id)
+    item.status = normalize_report_status(item.status)
+    if item.status not in REPORT_EDITABLE_STATUSES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Звіт уже погоджено і заблоковано для редагування")
     if {"start_time", "end_time", "break_minutes"} & data.keys():
         start = data.get("start_time", item.start_time)
         end = data.get("end_time", item.end_time)
         pause = data.get("break_minutes", item.break_minutes)
         data["worked_hours"] = calculate_worked_hours(start, end, pause)
+    if "status" in data and data["status"] is not None:
+        data["status"] = normalize_report_status(data["status"])
     update_item(db, item, data)
     return db.scalar(report_query(db).where(DailyReport.id == item_id))
 
 
 @router.patch("/daily-reports/{item_id}/status", response_model=DailyReportOut, tags=["daily reports"])
-def change_report_status(item_id: int, payload: ReportStatusUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> DailyReport:
+def change_report_status(item_id: int, payload: ReportStatusUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_roles("admin", "foreman"))) -> DailyReport:
     item = get_or_404(db, DailyReport, item_id)
-    update_item(db, item, payload.model_dump(exclude_unset=True))
+    current_status = normalize_report_status(item.status)
+    next_status = normalize_report_status(payload.status)
+
+    if current_user.role.code == "foreman":
+        if next_status not in {"foreman_approved", "rejected", "change_requested", "submitted"}:
+            raise HTTPException(status_code=403, detail="Бригадир не може виконати цю дію")
+        if current_status not in {"submitted", "change_requested", "rejected"} and next_status != "submitted":
+            raise HTTPException(status_code=409, detail="Поточний статус не можна змінити на цьому етапі")
+        item.foreman_reviewed_by_user_id = current_user.id
+        item.foreman_reviewed_at = datetime.now(UTC)
+
+    if current_user.role.code == "admin":
+        if next_status not in {"admin_approved", "rejected", "change_requested", "foreman_approved"}:
+            raise HTTPException(status_code=403, detail="Адміністратор не може виконати цю дію")
+        if next_status == "admin_approved" and current_status != "foreman_approved":
+            raise HTTPException(status_code=409, detail="Фінальне погодження доступне лише після бригадира")
+        item.admin_reviewed_by_user_id = current_user.id
+        item.admin_reviewed_at = datetime.now(UTC)
+
+    item.status = next_status
+    item.rejection_reason = payload.rejection_reason
+    db.commit()
+    db.refresh(item)
     return db.scalar(report_query(db).where(DailyReport.id == item_id))
 
 
@@ -401,6 +603,29 @@ def delete_report(item_id: int, db: Session = Depends(get_db), _: User = Depends
 @router.post("/report-photos", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
 def create_photo_metadata(payload: ReportPhotoCreate, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> ReportPhoto:
     return create_item(db, ReportPhoto, payload.model_dump())
+
+
+@router.get("/reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
+def list_report_comments(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportComment]:
+    return list(
+        db.scalars(
+            select(ReportComment)
+            .options(selectinload(ReportComment.author).selectinload(User.role))
+            .where(ReportComment.report_id == item_id)
+            .order_by(ReportComment.created_at.asc(), ReportComment.id.asc())
+        ).all()
+    )
+
+
+@router.post("/reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
+def create_report_comment(item_id: int, payload: ReportCommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> ReportComment:
+    get_or_404(db, DailyReport, item_id)
+    comment = create_item(db, ReportComment, {"report_id": item_id, "user_id": current_user.id, "body": payload.body.strip()})
+    return db.scalar(
+        select(ReportComment)
+        .options(selectinload(ReportComment.author).selectinload(User.role))
+        .where(ReportComment.id == comment.id)
+    )
 
 
 @router.get("/materials", response_model=list[MaterialOut], tags=["materials"])
@@ -537,7 +762,9 @@ def delete_expense(item_id: int, db: Session = Depends(get_db), _: User = Depend
 
 @router.get("/dashboard/analytics", tags=["analytics"])
 def dashboard_analytics(db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> dict:
-    report_statuses = dict(db.execute(select(DailyReport.status, func.count(DailyReport.id)).group_by(DailyReport.status)).all())
+    report_statuses = {"submitted": 0, "foreman_approved": 0, "admin_approved": 0, "rejected": 0, "change_requested": 0, "draft": 0}
+    for raw_status, count in db.execute(select(DailyReport.status, func.count(DailyReport.id)).group_by(DailyReport.status)).all():
+        report_statuses[normalize_report_status(raw_status)] = report_statuses.get(normalize_report_status(raw_status), 0) + count
     total_hours = float(db.scalar(select(func.coalesce(func.sum(DailyReport.worked_hours), 0))) or 0)
     active_objects = db.scalar(select(func.count(ConstructionObject.id)).where(ConstructionObject.status == "active")) or 0
     active_employees = db.scalar(select(func.count(Employee.id)).where(Employee.status == "active")) or 0
@@ -565,7 +792,7 @@ def dashboard_analytics(db: Session = Depends(get_db), _: User = Depends(get_cur
         "expense_total": round(expense_total, 2),
         "hours_by_object": hours_by_object,
         "object_progress": object_progress,
-        "expense_hint": "Витрати рахуються як сума записів expenses по об'єктах; години - сума погоджених і поточних daily reports.",
+        "expense_hint": "Витрати рахуються як сума записів expenses по об'єктах; години - сума звітів, а для payroll враховуються лише фінально погоджені звіти.",
     }
 
 
@@ -578,7 +805,7 @@ def calendar_summary(date_from: date | None = None, date_to: date | None = None,
         stmt = stmt.where(DailyReport.report_date <= date_to)
     stmt = stmt.order_by(DailyReport.report_date)
     return [
-        {"date": row[0].isoformat(), "status": row[1], "count": row[2], "hours": float(row[3] or 0)}
+        {"date": row[0].isoformat(), "status": normalize_report_status(row[1]), "count": row[2], "hours": float(row[3] or 0)}
         for row in db.execute(stmt).all()
     ]
 
@@ -596,23 +823,56 @@ def calendar_detailed(date_from: date | None = None, date_to: date | None = None
     by_date: dict[str, dict] = {}
     for report in reports:
         key = report.report_date.isoformat()
-        day = by_date.setdefault(key, {"date": key, "count": 0, "hours": 0.0, "open_count": 0, "review_count": 0, "approved_count": 0, "rejected_count": 0, "severity": "ok", "reports": []})
+        day = by_date.setdefault(
+            key,
+            {
+                "date": key,
+                "count": 0,
+                "hours": 0.0,
+                "draft_count": 0,
+                "submitted_count": 0,
+                "foreman_approved_count": 0,
+                "admin_approved_count": 0,
+                "rejected_count": 0,
+                "change_requested_count": 0,
+                "severity": "neutral",
+                "reports": [],
+            },
+        )
+        normalized_status = normalize_report_status(report.status)
         day["count"] += 1
         day["hours"] = round(day["hours"] + float(report.worked_hours or 0), 2)
-        day[f"{report.status}_count"] = day.get(f"{report.status}_count", 0) + 1
-        if report.status in {"open", "review"}:
-            day["severity"] = "warning"
-        if report.status == "rejected":
-            day["severity"] = "danger"
+        day[f"{normalized_status}_count"] = day.get(f"{normalized_status}_count", 0) + 1
         day["reports"].append(
             {
                 "id": report.id,
                 "report_number": report.report_number,
-                "status": report.status,
+                "status": normalized_status,
                 "employee": f"{report.employee.first_name} {report.employee.last_name}",
                 "object": report.construction_object.name,
                 "hours": float(report.worked_hours or 0),
                 "description": report.work_description,
             }
         )
+        day["severity"] = calendar_severity_for_statuses({entry["status"] for entry in day["reports"]})
     return list(by_date.values())
+
+
+@router.get("/payroll/summary", response_model=PayrollSummaryOut, tags=["payroll"])
+def payroll_summary(start_date: date, end_date: date, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> dict:
+    return build_payroll_summary(db, start_date, end_date)
+
+
+@router.get("/payroll/export.csv", tags=["payroll"])
+def payroll_export_csv(start_date: date, end_date: date, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Response:
+    summary = build_payroll_summary(db, start_date, end_date)
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["employee_id", "name", "position", "hourly_rate", "approved_hours", "total_payment", "reports_count", "pending_count", "rejected_count"])
+    for row in summary["employees"]:
+        writer.writerow([row["employee_id"], row["name"], row["position"], row["hourly_rate"], row["approved_hours"], row["total_payment"], row["reports_count"], row["pending_count"], row["rejected_count"]])
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="builder-erp-payroll-{start_date.isoformat()}-{end_date.isoformat()}.csv"'},
+    )

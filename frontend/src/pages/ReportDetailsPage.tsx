@@ -2,13 +2,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { Pencil, X } from "lucide-react";
 import { useParams } from "react-router-dom";
 
+import { ReportComments } from "../components/ReportComments";
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/useToast";
 import { api } from "../services/api";
 import { DailyReport } from "../types/api";
 
 function canEdit(report: DailyReport) {
-  return report.status !== "approved";
+  return ["draft", "rejected", "change_requested"].includes(report.status);
 }
 
 export function ReportDetailsPage() {
@@ -103,6 +104,7 @@ export function ReportDetailsPage() {
         <section className="photo-grid">
           {report.photos.map((photo) => <div className="photo-card" key={photo.id}>{photo.caption || photo.file_name}</div>)}
         </section>
+        <ReportComments reportId={report.id} />
       </main>
       {editing ? (
         <div className="modal-backdrop" onClick={() => setEditing(false)} role="presentation">
@@ -110,7 +112,7 @@ export function ReportDetailsPage() {
             <div className="section-head">
               <div>
                 <h3 className="section-title">Редагувати звіт</h3>
-                <p className="section-subtitle">Доступно до погодження адміністратором або бригадиром.</p>
+                <p className="section-subtitle">Редагування доступне лише до погодження бригадиром або адміністратором.</p>
               </div>
               <button className="icon-btn" type="button" aria-label="Закрити" onClick={() => setEditing(false)}><X size={18} /></button>
             </div>
