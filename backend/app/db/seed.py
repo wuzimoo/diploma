@@ -140,9 +140,9 @@ def enrich_demo_data(db) -> None:
         if number == "DR-2026-0042":
             db.add(ReportPhoto(daily_report=report, file_name="site-progress.jpg", file_url="https://placehold.co/900x650?text=Site+Progress", caption="Хід робіт секція C"))
             if worker_user:
-                db.add(ReportComment(daily_report=report, author=worker_user, body="Додав фото з другого поверху та оновив виконаний обсяг."))
+                db.add(ReportComment(report=report, author=worker_user, body="Додав фото з другого поверху та оновив виконаний обсяг."))
             if foreman_user:
-                db.add(ReportComment(daily_report=report, author=foreman_user, body="Перевіряю трасування. Якщо все ок, передам на фінальне погодження."))
+                db.add(ReportComment(report=report, author=foreman_user, body="Перевіряю трасування. Якщо все ок, передам на фінальне погодження."))
 
     db.commit()
 
@@ -220,9 +220,9 @@ def run_seed() -> None:
                 ReportPhoto(daily_report=reports[0], file_name="trasa-1.jpg", file_url="https://placehold.co/900x650?text=Trasa+1", caption="Траса, 1-й поверх"),
                 ReportPhoto(daily_report=reports[0], file_name="shield.jpg", file_url="https://placehold.co/900x650?text=Shield", caption="Позиція електрощита"),
                 ReportPhoto(daily_report=reports[0], file_name="materials.jpg", file_url="https://placehold.co/900x650?text=Materials", caption="Матеріали на об'єкті"),
-                ReportComment(daily_report=reports[0], author=users[2], body="Завантажив фото та уточнив позицію щита."),
-                ReportComment(daily_report=reports[0], author=users[1], body="Потрібна додаткова перевірка перед фінальним погодженням."),
-                ReportComment(daily_report=reports[2], author=users[0], body="Фінально погоджено для включення в payroll."),
+                ReportComment(report=reports[0], author=users[2], body="Завантажив фото та уточнив позицію щита."),
+                ReportComment(report=reports[0], author=users[1], body="Потрібна додаткова перевірка перед фінальним погодженням."),
+                ReportComment(report=reports[2], author=users[0], body="Фінально погоджено для включення в payroll."),
             ]
         )
 
