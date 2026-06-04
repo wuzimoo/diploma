@@ -605,8 +605,7 @@ def create_photo_metadata(payload: ReportPhotoCreate, db: Session = Depends(get_
     return create_item(db, ReportPhoto, payload.model_dump())
 
 
-@router.get("/reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
-def list_report_comments(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportComment]:
+def _list_report_comments(item_id: int, db: Session) -> list[ReportComment]:
     return list(
         db.scalars(
             select(ReportComment)
@@ -617,8 +616,7 @@ def list_report_comments(item_id: int, db: Session = Depends(get_db), _: User = 
     )
 
 
-@router.post("/reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
-def create_report_comment(item_id: int, payload: ReportCommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> ReportComment:
+def _create_report_comment(item_id: int, payload: ReportCommentCreate, db: Session, current_user: User) -> ReportComment:
     get_or_404(db, DailyReport, item_id)
     comment = create_item(db, ReportComment, {"report_id": item_id, "user_id": current_user.id, "body": payload.body.strip()})
     return db.scalar(
@@ -626,6 +624,18 @@ def create_report_comment(item_id: int, payload: ReportCommentCreate, db: Sessio
         .options(selectinload(ReportComment.author).selectinload(User.role))
         .where(ReportComment.id == comment.id)
     )
+
+
+@router.get("/reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
+@router.get("/daily-reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
+def list_report_comments(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportComment]:
+    return _list_report_comments(item_id, db)
+
+
+@router.post("/reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
+@router.post("/daily-reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
+def create_report_comment(item_id: int, payload: ReportCommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> ReportComment:
+    return _create_report_comment(item_id, payload, db, current_user)
 
 
 @router.get("/materials", response_model=list[MaterialOut], tags=["materials"])
