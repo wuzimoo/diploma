@@ -34,6 +34,11 @@ export function AdminDashboardPage() {
     [results],
   );
 
+  const hoursByObjectId = useMemo(
+    () => new Map((analytics?.hours_by_object || []).map((row) => [row.object_id, row.hours])),
+    [analytics],
+  );
+
   return (
     <>
       <section className="summary-grid-desktop">
@@ -125,11 +130,19 @@ export function AdminDashboardPage() {
         <div className="cards-grid">
           {analytics?.object_progress.map((item) => (
             <Link className="entity-card object-progress-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
-              <div className="report-item-top">
-                <strong>{item.object}</strong>
+              <div className="object-progress-head">
+                <div className="stack compact-stack">
+                  <span className="eyebrow">Об'єкт</span>
+                  <strong>{item.object}</strong>
+                </div>
                 <StatusBadge status={item.status} />
               </div>
+              <p className="object-progress-copy">Поточний прогрес виконання та накопичені години по об'єкту.</p>
               <div className="mini-progress"><i style={{ width: `${item.progress_percent}%` }} /><span>{item.progress_percent}%</span></div>
+              <div className="object-progress-foot">
+                <span>Готовність</span>
+                <strong>{hoursByObjectId.get(item.object_id)?.toFixed(2) || "0.00"} h</strong>
+              </div>
             </Link>
           ))}
         </div>
