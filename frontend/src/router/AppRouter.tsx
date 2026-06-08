@@ -17,14 +17,18 @@ import { ReportReviewPage } from "../pages/ReportReviewPage";
 import { ReportsListPage } from "../pages/ReportsListPage";
 import { WorkerHomePage } from "../pages/WorkerHomePage";
 import { useAuth } from "../hooks/useAuth";
+import { RoleCode } from "../types/api";
 
-function Protected({ children }: { children: JSX.Element }) {
+function Protected({ children, allowedRoles }: { children: JSX.Element; allowedRoles?: RoleCode[] }) {
   const { user, loading } = useAuth();
   if (loading) {
-    return <div className="loading-screen">Завантаження Билдер ERP...</div>;
+    return <div className="loading-screen">Завантаження Kairos Builder...</div>;
   }
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  if (allowedRoles && !allowedRoles.includes(user.role.code)) {
+    return <Navigate to={user.role.code === "worker" ? "/worker" : "/admin"} replace />;
   }
   return children;
 }
@@ -33,23 +37,23 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/worker" element={<Protected><MobileLayout /></Protected>}>
+      <Route path="/worker" element={<Protected allowedRoles={["worker"]}><MobileLayout /></Protected>}>
         <Route index element={<WorkerHomePage />} />
         <Route path="reports/new" element={<CreateReportPage />} />
         <Route path="reports/:id" element={<ReportDetailsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="more" element={<MorePage />} />
       </Route>
-      <Route path="/admin" element={<Protected><AdminLayout /></Protected>}>
+      <Route path="/admin" element={<Protected allowedRoles={["admin", "foreman"]}><AdminLayout /></Protected>}>
         <Route index element={<AdminDashboardPage />} />
         <Route path="reports" element={<ReportsListPage />} />
         <Route path="reports/:id" element={<ReportReviewPage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="crews" element={<CrewsPage />} />
+        <Route path="employees" element={<Protected allowedRoles={["admin"]}><EmployeesPage /></Protected>} />
+        <Route path="crews" element={<Protected allowedRoles={["admin"]}><CrewsPage /></Protected>} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="objects" element={<ObjectsPage />} />
         <Route path="objects/:id" element={<ObjectDetailPage />} />
-        <Route path="payroll" element={<PayrollPage />} />
+        <Route path="payroll" element={<Protected allowedRoles={["admin"]}><PayrollPage /></Protected>} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

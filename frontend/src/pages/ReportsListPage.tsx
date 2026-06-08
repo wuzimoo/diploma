@@ -35,7 +35,7 @@ export function ReportsListPage() {
         <p className="section-subtitle">Фільтри та швидкі дії для щоденного погодження</p>
       </div>
       <div className="filters">
-        <label className="field">Пошук<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Опис робіт" /></label>
+        <label className="field">Пошук<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="ПІБ, дата, номер звіту, об'єкт або опис робіт" /></label>
         <label className="field">Статус<select value={status} onChange={(event) => setStatus(event.target.value)}><option value="">Усі</option><option value="draft">Чернетка</option><option value="submitted">У бригадира</option><option value="foreman_approved">У адміна</option><option value="admin_approved">Фінально погоджено</option><option value="change_requested">Потрібні зміни</option><option value="rejected">Відхилено</option></select></label>
         <label className="field">Працівники<select value={employee} onChange={(event) => setEmployee(event.target.value)}><option value="">Усі</option>{employees.map((employeeName) => <option key={employeeName} value={employeeName}>{employeeName}</option>)}</select></label>
       </div>

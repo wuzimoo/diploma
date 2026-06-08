@@ -32,7 +32,7 @@ export function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-card">
-        <span className="brand-chip">Билдер ERP</span>
+        <span className="brand-chip">Kairos Builder</span>
         <h1>Вхід до системи</h1>
         <p>Єдина система для щоденних звітів, об'єктів, матеріалів і контролю годин.</p>
         <form className="form-grid" onSubmit={submit}>

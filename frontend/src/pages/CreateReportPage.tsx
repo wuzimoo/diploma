@@ -72,12 +72,14 @@ export function CreateReportPage() {
       worked_hours: workedHours,
       status: "submitted"
     });
-    await Promise.all(mediaFiles.map((file) => api.post("/report-photos", {
-      daily_report_id: response.data.id,
-      file_name: file.name,
-      file_url: `/demo-uploads/${encodeURIComponent(file.name)}`,
-      caption: "Додано працівником у формі звіту"
-    })));
+    await Promise.all(mediaFiles.map((file) => {
+      const payload = new FormData();
+      payload.append("file", file);
+      payload.append("caption", "Додано працівником у формі звіту");
+      return api.post(`/reports/${response.data.id}/media`, payload, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+    }));
     pushToast({ tone: "success", title: "Звіт створено", description: "Щоденний звіт відправлено на перевірку бригадиру." });
     navigate(`/worker/reports/${response.data.id}`);
   }
@@ -108,7 +110,7 @@ export function CreateReportPage() {
           <div className="hours-row"><span>Розрахований робочий час</span><strong>{workedHours.toFixed(2)} h</strong></div>
           <label className="field">Виконаний обсяг<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="Напр.: 12.5" /></label>
           <label className="field">Опис робіт<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="Напр.: змонтовано кабельні траси, підготовлено головний щит" /></label>
-          <label className="field">Фото / медіа<input type="file" accept="image/*,video/*" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">У demo-збірці зберігається реєстр файлів для звіту; повний storage-пайплайн підключається окремо.</span></label>
+          <label className="field">Фото / медіа<input type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Файли завантажуються разом зі звітом і доступні для перегляду в картці звіту.</span></label>
           {formError ? <div className="form-error">{formError}</div> : null}
           {mediaFiles.length > 0 && <div className="file-list">{mediaFiles.map((file) => <span key={file.name}>{file.name}</span>)}</div>}
           <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Надіслати звіт</button>

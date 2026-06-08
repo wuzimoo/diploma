@@ -45,7 +45,7 @@ test("worker mobile flow covers calendar switching, report creation and locked f
   await page.getByRole("button", { name: "Надіслати звіт" }).click();
 
   await expect(page.getByRole("heading", { name: /DR-2026-/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Коментарі" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Коментарі та історія" })).toBeVisible();
 
   await page.goto("/worker/reports/29", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "DR-2026-0029" })).toBeVisible();
@@ -57,7 +57,8 @@ test("foreman can approve submitted report and add comment", async ({ page }) =>
 
   await page.getByRole("button", { name: "Foreman" }).click();
   await page.getByRole("button", { name: "Увійти" }).click();
-  await expect(page.getByRole("heading", { name: "Билдер ERP" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kairos Builder" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Бригади/ })).toHaveCount(0);
 
   await page.goto("/admin/reports/31", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Очікує бригадира")).toBeVisible();
@@ -76,7 +77,7 @@ test("admin can final approve report, manage employee access and export payroll 
 
   await page.getByRole("button", { name: "Admin" }).click();
   await page.getByRole("button", { name: "Увійти" }).click();
-  await expect(page.getByRole("heading", { name: "Билдер ERP" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kairos Builder" })).toBeVisible();
   await assertNoHorizontalOverflow(page);
 
   await expect(page.getByRole("link", { name: /Berlin Ost - Neubau C/ }).first()).toBeVisible();

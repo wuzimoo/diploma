@@ -32,6 +32,7 @@ let nextReportId = 120;
 let nextCommentId = 20;
 let nextCrewId = 4;
 let nextCrewMemberId = 10;
+let nextPhotoId = 50;
 
 const employeesBase = [
   {
@@ -369,6 +370,99 @@ function buildPayrollSummary(startDate: string, endDate: string, reports: any[],
   };
 }
 
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    draft: "Чернетка",
+    submitted: "Надіслано бригадиру",
+    foreman_approved: "Погоджено бригадиром",
+    admin_approved: "Фінально погоджено",
+    rejected: "Відхилено",
+    change_requested: "Потрібні зміни",
+  };
+  return labels[status] || status;
+}
+
+function statusTone(status: string): "neutral" | "success" | "warning" | "danger" {
+  if (status === "admin_approved") return "success";
+  if (status === "rejected" || status === "change_requested") return "danger";
+  if (status === "submitted" || status === "foreman_approved" || status === "draft") return "warning";
+  return "neutral";
+}
+
+function buildActivity(reportId: number, reports: any[], comments: Record<number, any[]>) {
+  const report = reports.find((item) => item.id === reportId);
+  if (!report) return [];
+  const items: any[] = [
+    {
+      id: `event-created-${report.id}`,
+      kind: "event",
+      title: "Звіт опубліковано",
+      body: `Звіт ${report.report_number} створено та передано в workflow погодження.`,
+      tone: "neutral",
+      created_at: report.created_at,
+      author: report.employee_id === 3 ? usersByEmail.get("worker@romans-erp.demo") : null,
+    },
+  ];
+  if (report.foreman_reviewed_at) {
+    items.push({
+      id: `event-foreman-${report.id}`,
+      kind: "event",
+      title: "Погоджено бригадиром",
+      body: "Звіт пройшов первинну перевірку бригадира.",
+      tone: "warning",
+      created_at: report.foreman_reviewed_at,
+      author: usersByEmail.get("foreman@romans-erp.demo"),
+    });
+  }
+  if (report.admin_reviewed_at) {
+    items.push({
+      id: `event-admin-${report.id}`,
+      kind: "event",
+      title: "Фінально погоджено",
+      body: "Звіт підтверджено адміністратором для нарахувань.",
+      tone: "success",
+      created_at: report.admin_reviewed_at,
+      author: usersByEmail.get("admin@romans-erp.demo"),
+    });
+  }
+  if (report.rejection_reason) {
+    items.push({
+      id: `event-status-${report.id}`,
+      kind: "event",
+      title: statusLabel(report.status),
+      body: report.rejection_reason,
+      tone: statusTone(report.status),
+      created_at: report.admin_reviewed_at || report.foreman_reviewed_at || report.created_at,
+      author: null,
+    });
+  }
+  if (report.photos?.length) {
+    report.photos.forEach((photo: any) => {
+      items.push({
+        id: `event-photo-${photo.id}`,
+        kind: "event",
+        title: "Додано медіафайл",
+        body: `Файл «${photo.file_name}» прикріплено до звіту.`,
+        tone: "success",
+        created_at: report.created_at,
+        author: null,
+      });
+    });
+  }
+  (comments[reportId] || []).forEach((comment) => {
+    items.push({
+      id: `comment-${comment.id}`,
+      kind: "comment",
+      title: "Коментар додано",
+      body: comment.body,
+      tone: "neutral",
+      created_at: comment.created_at,
+      author: comment.author,
+    });
+  });
+  return items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
 export async function installMockApi(page: Page) {
   let currentEmail = "worker@romans-erp.demo";
   let employees = clone(employeesBase);
@@ -477,6 +571,38 @@ export async function installMockApi(page: Page) {
 
     if (path === "/dashboard/analytics") return json(route, buildAnalytics(reports, employees));
 
+    if (path === "/search") {
+      const q = (url.searchParams.get("q") || "").toLowerCase();
+      const reportDateQuery = url.searchParams.get("q") || "";
+      const employeeResults = employees
+        .filter((employee) => `${employee.first_name} ${employee.last_name} ${employee.position} ${employee.user?.email || ""}`.toLowerCase().includes(q))
+        .slice(0, 5)
+        .map((employee) => ({ id: employee.id, label: `${employee.first_name} ${employee.last_name}`, subtitle: employee.position }));
+      const objectResults = objects
+        .filter((object) => `${object.name} ${object.code} ${object.city} ${object.address}`.toLowerCase().includes(q))
+        .slice(0, 5)
+        .map((object) => ({ id: object.id, label: object.name, subtitle: `${object.city} · ${object.code}` }));
+      const reportResults = reports
+        .filter((report) => {
+          const employee = employees.find((item) => item.id === report.employee_id);
+          const object = objects.find((item) => item.id === report.construction_object_id);
+          const haystack = `${report.report_number} ${report.work_description} ${report.report_date} ${employee?.first_name || ""} ${employee?.last_name || ""} ${object?.name || ""} ${object?.code || ""}`.toLowerCase();
+          return haystack.includes(q) || report.report_date === reportDateQuery;
+        })
+        .slice(0, 5)
+        .map((report) => {
+          const employee = employees.find((item) => item.id === report.employee_id);
+          const object = objects.find((item) => item.id === report.construction_object_id);
+          return {
+            id: report.id,
+            label: report.report_number,
+            subtitle: `${report.report_date} · ${employee?.first_name || ""} ${employee?.last_name || ""} · ${object?.name || ""}`.trim(),
+            status: report.status,
+          };
+        });
+      return json(route, { employees: employeeResults, objects: objectResults, reports: reportResults });
+    }
+
     if (path === "/objects" && request.method() === "GET") return json(route, objects);
 
     const objectSummaryMatch = path.match(/^\/objects\/(\d+)\/summary$/);
@@ -559,7 +685,13 @@ export async function installMockApi(page: Page) {
       const result = reports
         .filter((report) => !status || report.status === status)
         .filter((report) => !employeeId || report.employee_id === Number(employeeId))
-        .filter((report) => !search || report.work_description.toLowerCase().includes(search) || report.report_number.toLowerCase().includes(search))
+        .filter((report) => {
+          if (!search) return true;
+          const employee = employees.find((item) => item.id === report.employee_id);
+          const object = objects.find((item) => item.id === report.construction_object_id);
+          const haystack = `${report.work_description} ${report.report_number} ${report.report_date} ${employee?.first_name || ""} ${employee?.last_name || ""} ${object?.name || ""} ${object?.code || ""}`.toLowerCase();
+          return haystack.includes(search);
+        })
         .sort((a, b) => (a.report_date < b.report_date ? 1 : -1))
         .map((report) => normalizeReport(report, employees));
       return json(route, result);
@@ -627,6 +759,22 @@ export async function installMockApi(page: Page) {
       return json(route, normalizeReport(reports.find((report) => report.id === reportId), employees));
     }
 
+    const reportMediaMatch = path.match(/^\/(?:daily-reports|reports)\/(\d+)\/media$/);
+    if (reportMediaMatch && request.method() === "POST") {
+      const reportId = Number(reportMediaMatch[1]);
+      const photo = {
+        id: nextPhotoId++,
+        daily_report_id: reportId,
+        file_name: "uploaded-file.jpg",
+        file_url: "https://placehold.co/900x650",
+        caption: "Додано працівником у формі звіту",
+        content_type: "image/jpeg",
+        size_bytes: 245120,
+      };
+      reports = reports.map((report) => (report.id === reportId ? { ...report, photos: [...(report.photos || []), photo] } : report));
+      return json(route, photo, 201);
+    }
+
     const commentsMatch = path.match(/^\/reports\/(\d+)\/comments$/);
     if (commentsMatch && request.method() === "GET") {
       return json(route, comments[Number(commentsMatch[1])] || []);
@@ -645,6 +793,30 @@ export async function installMockApi(page: Page) {
       };
       comments[reportId] = [...(comments[reportId] || []), created];
       return json(route, created, 201);
+    }
+
+    const commentsCompatMatch = path.match(/^\/daily-reports\/(\d+)\/comments$/);
+    if (commentsCompatMatch && request.method() === "GET") {
+      return json(route, comments[Number(commentsCompatMatch[1])] || []);
+    }
+    if (commentsCompatMatch && request.method() === "POST") {
+      const reportId = Number(commentsCompatMatch[1]);
+      const data = request.postDataJSON() as any;
+      const created = {
+        id: nextCommentId++,
+        report_id: reportId,
+        user_id: currentUser.id,
+        body: data.body,
+        created_at: "2026-06-03T13:30:00Z",
+        author: currentUser,
+      };
+      comments[reportId] = [...(comments[reportId] || []), created];
+      return json(route, created, 201);
+    }
+
+    const activityMatch = path.match(/^\/(?:reports|daily-reports)\/(\d+)\/activity$/);
+    if (activityMatch && request.method() === "GET") {
+      return json(route, buildActivity(Number(activityMatch[1]), reports, comments));
     }
 
     if (path === "/calendar/detailed") {

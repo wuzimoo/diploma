@@ -105,6 +105,8 @@ export interface ReportPhoto {
   file_name: string;
   file_url: string;
   caption?: string | null;
+  content_type?: string | null;
+  size_bytes?: number | null;
 }
 
 export interface DailyReport {
@@ -141,6 +143,16 @@ export interface ReportComment {
   body: string;
   created_at: string;
   author: UserAccess;
+}
+
+export interface ReportActivityItem {
+  id: string;
+  kind: "comment" | "event";
+  title: string;
+  body?: string | null;
+  tone: "neutral" | "success" | "warning" | "danger";
+  created_at: string;
+  author?: UserAccess | null;
 }
 
 export interface Material {
@@ -231,4 +243,29 @@ export interface PayrollSummary {
   start_date: string;
   end_date: string;
   employees: PayrollEmployeeSummary[];
+}
+
+export interface SearchResultEmployee {
+  id: number;
+  label: string;
+  subtitle: string;
+}
+
+export interface SearchResultObject {
+  id: number;
+  label: string;
+  subtitle: string;
+}
+
+export interface SearchResultReport {
+  id: number;
+  label: string;
+  subtitle: string;
+  status: string;
+}
+
+export interface SearchResults {
+  employees: SearchResultEmployee[];
+  objects: SearchResultObject[];
+  reports: SearchResultReport[];
 }

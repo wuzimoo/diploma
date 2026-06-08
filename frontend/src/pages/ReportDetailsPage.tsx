@@ -3,6 +3,7 @@ import { Pencil, X } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import { ReportComments } from "../components/ReportComments";
+import { ReportMediaGallery } from "../components/ReportMediaGallery";
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/useToast";
 import { api } from "../services/api";
@@ -101,9 +102,7 @@ export function ReportDetailsPage() {
           {report.media_note && <p className="helper">{report.media_note}</p>}
           {report.rejection_reason && <p className="form-error">{report.rejection_reason}</p>}
         </section>
-        <section className="photo-grid">
-          {report.photos.map((photo) => <div className="photo-card" key={photo.id}>{photo.caption || photo.file_name}</div>)}
-        </section>
+        <ReportMediaGallery photos={report.photos} />
         <ReportComments reportId={report.id} />
       </main>
       {editing ? (

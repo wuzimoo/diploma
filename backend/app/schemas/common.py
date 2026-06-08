@@ -369,6 +369,8 @@ class ReportPhotoOut(ORMModel):
     file_name: str
     file_url: str
     caption: str | None
+    content_type: str | None = None
+    size_bytes: int | None = None
 
 
 class DailyReportOut(ORMModel):
@@ -414,6 +416,16 @@ class ReportCommentOut(ORMModel):
     body: str
     created_at: datetime
     author: UserAccessOut
+
+
+class ReportActivityItemOut(BaseModel):
+    id: str
+    kind: str
+    title: str
+    body: str | None = None
+    tone: str
+    created_at: datetime
+    author: UserAccessOut | None = None
 
 
 class PayrollReportOut(BaseModel):

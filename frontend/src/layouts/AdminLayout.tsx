@@ -5,22 +5,24 @@ import { useAuth } from "../hooks/useAuth";
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
+  const isAdmin = user?.role.code === "admin";
+
   return (
     <div className="desktop-page">
       <div className="desktop-shell">
         <header className="desktop-header">
           <div className="brand">
-            <h1>Билдер ERP</h1>
+            <h1>Kairos Builder</h1>
             <p>{user?.role.name || "Керування будівельною компанією"}</p>
           </div>
           <nav className="top-links">
             <NavLink to="/admin"><BarChart3 size={18} />Панель</NavLink>
             <NavLink to="/admin/reports"><ClipboardList size={18} />Звіти</NavLink>
-            <NavLink to="/admin/employees"><Users size={18} />Працівники</NavLink>
-            <NavLink to="/admin/crews"><HardHat size={18} />Бригади</NavLink>
             <NavLink to="/admin/calendar"><CalendarDays size={18} />Календар</NavLink>
             <NavLink to="/admin/objects"><Building2 size={18} />Об'єкти</NavLink>
-            <NavLink to="/admin/payroll"><ReceiptText size={18} />Оплати</NavLink>
+            {isAdmin ? <NavLink to="/admin/employees"><Users size={18} />Працівники</NavLink> : null}
+            {isAdmin ? <NavLink to="/admin/crews"><HardHat size={18} />Бригади</NavLink> : null}
+            {isAdmin ? <NavLink to="/admin/payroll"><ReceiptText size={18} />Оплати</NavLink> : null}
             <button className="link-button" onClick={logout} type="button"><LogOut size={18} />Вийти</button>
           </nav>
         </header>

@@ -1,9 +1,10 @@
 import csv
 from datetime import UTC, date, datetime
-from io import StringIO
+from io import BytesIO, StringIO
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
+from fastapi.responses import RedirectResponse, StreamingResponse
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_current_user, require_roles
@@ -21,6 +22,7 @@ from app.models import (
     MaterialRequestItem,
     ObjectAssignment,
     ReportComment,
+    ReportEvent,
     ReportPhoto,
     Role,
     User,
@@ -60,6 +62,7 @@ from app.schemas import (
     MaterialUpdate,
     ObjectSummaryOut,
     PayrollSummaryOut,
+    ReportActivityItemOut,
     ReportPhotoCreate,
     ReportPhotoOut,
     ReportCommentCreate,
@@ -91,6 +94,7 @@ def report_query(db: Session):
         selectinload(DailyReport.construction_object),
         selectinload(DailyReport.work_plan_item),
         selectinload(DailyReport.photos),
+        selectinload(DailyReport.events).selectinload(ReportEvent.actor).selectinload(User.role),
     )
 
 
@@ -158,6 +162,109 @@ def normalize_report_status(value: str) -> str:
     return mapping.get(value, value)
 
 
+def add_report_event(
+    db: Session,
+    report: DailyReport,
+    *,
+    event_type: str,
+    title: str,
+    body: str | None = None,
+    tone: str = "neutral",
+    actor_id: int | None = None,
+) -> ReportEvent:
+    event = ReportEvent(
+        report_id=report.id,
+        user_id=actor_id,
+        event_type=event_type,
+        title=title,
+        body=body,
+        tone=tone,
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+def report_status_title(status_value: str) -> str:
+    labels = {
+        "draft": "Чернетка",
+        "submitted": "Надіслано бригадиру",
+        "foreman_approved": "Погоджено бригадиром",
+        "admin_approved": "Фінально погоджено",
+        "rejected": "Відхилено",
+        "change_requested": "Потрібні зміни",
+    }
+    return labels.get(normalize_report_status(status_value), status_value)
+
+
+def report_status_tone(status_value: str) -> str:
+    normalized = normalize_report_status(status_value)
+    if normalized == "admin_approved":
+        return "success"
+    if normalized in {"rejected", "change_requested"}:
+        return "danger"
+    if normalized in {"submitted", "foreman_approved"}:
+        return "warning"
+    return "neutral"
+
+
+def report_activity_items(item_id: int, db: Session) -> list[ReportActivityItemOut]:
+    comments = list(
+        db.scalars(
+            select(ReportComment)
+            .options(selectinload(ReportComment.author).selectinload(User.role))
+            .where(ReportComment.report_id == item_id)
+            .order_by(ReportComment.created_at.desc(), ReportComment.id.desc())
+        ).all()
+    )
+    events = list(
+        db.scalars(
+            select(ReportEvent)
+            .options(selectinload(ReportEvent.actor).selectinload(User.role))
+            .where(ReportEvent.report_id == item_id)
+            .order_by(ReportEvent.created_at.desc(), ReportEvent.id.desc())
+        ).all()
+    )
+    merged: list[ReportActivityItemOut] = []
+    for comment in comments:
+        merged.append(
+            ReportActivityItemOut(
+                id=f"comment-{comment.id}",
+                kind="comment",
+                title="Коментар додано",
+                body=comment.body,
+                tone="neutral",
+                created_at=comment.created_at,
+                author=comment.author,
+            )
+        )
+    for event in events:
+        merged.append(
+            ReportActivityItemOut(
+                id=f"event-{event.id}",
+                kind="event",
+                title=event.title,
+                body=event.body,
+                tone=event.tone,
+                created_at=event.created_at,
+                author=event.actor,
+            )
+        )
+    merged.sort(key=lambda item: item.created_at, reverse=True)
+    return merged
+
+
+def parse_search_date(value: str) -> date | None:
+    cleaned = value.strip()
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d-%m-%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(cleaned, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def calendar_severity_for_statuses(statuses: set[str]) -> str:
     normalized = {normalize_report_status(status) for status in statuses}
     if "rejected" in normalized or "change_requested" in normalized:
@@ -221,6 +328,98 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@router.get("/search", tags=["search"])
+def global_search(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(default=5, ge=1, le=20),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("admin", "foreman")),
+) -> dict:
+    pattern = f"%{q.strip()}%"
+    search_date = parse_search_date(q)
+
+    employees = list(
+        db.scalars(
+            employee_query()
+            .join(User, isouter=True)
+            .where(
+                or_(
+                    Employee.first_name.ilike(pattern),
+                    Employee.last_name.ilike(pattern),
+                    Employee.position.ilike(pattern),
+                    User.email.ilike(pattern),
+                )
+            )
+            .order_by(Employee.first_name, Employee.last_name)
+            .limit(limit)
+        ).unique().all()
+    )
+    objects = list(
+        db.scalars(
+            select(ConstructionObject)
+            .where(
+                or_(
+                    ConstructionObject.name.ilike(pattern),
+                    ConstructionObject.code.ilike(pattern),
+                    ConstructionObject.city.ilike(pattern),
+                    ConstructionObject.address.ilike(pattern),
+                )
+            )
+            .order_by(ConstructionObject.name)
+            .limit(limit)
+        ).all()
+    )
+
+    report_conditions = [
+        DailyReport.report_number.ilike(pattern),
+        DailyReport.work_description.ilike(pattern),
+        Employee.first_name.ilike(pattern),
+        Employee.last_name.ilike(pattern),
+        ConstructionObject.name.ilike(pattern),
+        ConstructionObject.code.ilike(pattern),
+        cast(DailyReport.report_date, String).ilike(pattern),
+    ]
+    if search_date:
+        report_conditions.append(DailyReport.report_date == search_date)
+    report_stmt = (
+        report_query(db)
+        .join(Employee, DailyReport.employee_id == Employee.id)
+        .join(ConstructionObject, DailyReport.construction_object_id == ConstructionObject.id)
+        .where(or_(*report_conditions))
+        .order_by(DailyReport.report_date.desc(), DailyReport.id.desc())
+        .limit(limit)
+    )
+    reports = list(db.scalars(report_stmt).unique().all())[:limit]
+
+    return {
+        "employees": [
+            {
+                "id": employee.id,
+                "label": f"{employee.first_name} {employee.last_name}",
+                "subtitle": employee.position,
+            }
+            for employee in employees
+        ],
+        "objects": [
+            {
+                "id": obj.id,
+                "label": obj.name,
+                "subtitle": f"{obj.city} · {obj.code}",
+            }
+            for obj in objects
+        ],
+        "reports": [
+            {
+                "id": report.id,
+                "label": report.report_number,
+                "subtitle": f"{report.report_date} · {report.employee.first_name} {report.employee.last_name} · {report.construction_object.name}",
+                "status": normalize_report_status(report.status),
+            }
+            for report in reports
+        ],
+    }
+
+
 @router.get("/users", response_model=list[UserOut], tags=["users"])
 def list_users(
     skip: int = 0,
@@ -278,7 +477,7 @@ def list_employees(skip: int = 0, limit: int = 50, search: str | None = None, st
 
 
 @router.post("/employees", response_model=EmployeeOut, status_code=status.HTTP_201_CREATED, tags=["employees"])
-def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Employee:
+def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Employee:
     data = payload.model_dump()
     access_email = data.pop("access_email", None)
     access_password = data.pop("access_password", None)
@@ -301,7 +500,7 @@ def get_employee(item_id: int, db: Session = Depends(get_db), _: User = Depends(
 
 
 @router.patch("/employees/{item_id}", response_model=EmployeeOut, tags=["employees"])
-def update_employee(item_id: int, payload: EmployeeUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Employee:
+def update_employee(item_id: int, payload: EmployeeUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Employee:
     data = payload.model_dump(exclude_unset=True)
     access_email = data.pop("access_email", None) if "access_email" in data else None
     access_password = data.pop("access_password", None) if "access_password" in data else None
@@ -437,19 +636,19 @@ def list_crews(skip: int = 0, limit: int = 50, current_object_id: int | None = N
 
 
 @router.post("/crews", response_model=CrewOut, status_code=status.HTTP_201_CREATED, tags=["crews"])
-def create_crew(payload: CrewCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Crew:
+def create_crew(payload: CrewCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Crew:
     crew = create_item(db, Crew, payload.model_dump())
     return db.scalar(crew_query().where(Crew.id == crew.id))
 
 
 @router.patch("/crews/{item_id}", response_model=CrewOut, tags=["crews"])
-def update_crew(item_id: int, payload: CrewUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> Crew:
+def update_crew(item_id: int, payload: CrewUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Crew:
     update_item(db, get_or_404(db, Crew, item_id), payload.model_dump(exclude_unset=True))
     return db.scalar(crew_query().where(Crew.id == item_id))
 
 
 @router.post("/crew-members", response_model=CrewMemberOut, status_code=status.HTTP_201_CREATED, tags=["crews"])
-def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> CrewMember:
+def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> CrewMember:
     existing_member = db.scalar(
         select(CrewMember)
         .options(selectinload(CrewMember.crew))
@@ -468,7 +667,7 @@ def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db),
 
 
 @router.patch("/crew-members/{item_id}", response_model=CrewMemberOut, tags=["crews"])
-def update_crew_member(item_id: int, payload: CrewMemberUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> CrewMember:
+def update_crew_member(item_id: int, payload: CrewMemberUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> CrewMember:
     update_item(db, get_or_404(db, CrewMember, item_id), payload.model_dump(exclude_unset=True))
     return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item_id))
 
@@ -505,7 +704,7 @@ def list_reports(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[DailyReport]:
-    stmt = report_query(db)
+    stmt = report_query(db).join(Employee, DailyReport.employee_id == Employee.id).join(ConstructionObject, DailyReport.construction_object_id == ConstructionObject.id)
     if status_filter:
         stmt = stmt.where(DailyReport.status == status_filter)
     if employee_id:
@@ -517,13 +716,26 @@ def list_reports(
     if date_to:
         stmt = stmt.where(DailyReport.report_date <= date_to)
     if search:
-        stmt = stmt.where(DailyReport.work_description.ilike(f"%{search}%"))
+        pattern = f"%{search}%"
+        search_date = parse_search_date(search)
+        conditions = [
+            DailyReport.work_description.ilike(pattern),
+            DailyReport.report_number.ilike(pattern),
+            Employee.first_name.ilike(pattern),
+            Employee.last_name.ilike(pattern),
+            ConstructionObject.name.ilike(pattern),
+            ConstructionObject.code.ilike(pattern),
+            cast(DailyReport.report_date, String).ilike(pattern),
+        ]
+        if search_date:
+            conditions.append(DailyReport.report_date == search_date)
+        stmt = stmt.where(or_(*conditions))
     stmt = stmt.order_by(DailyReport.report_date.desc(), DailyReport.id.desc()).offset(skip).limit(min(limit, 100))
-    return list(db.scalars(stmt).all())
+    return list(db.scalars(stmt).unique().all())
 
 
 @router.post("/daily-reports", response_model=DailyReportOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
-def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> DailyReport:
+def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> DailyReport:
     data = payload.model_dump()
     data["report_number"] = data["report_number"] or next_report_number(db)
     data["worked_hours"] = data["worked_hours"] or calculate_worked_hours(data["start_time"], data["end_time"], data["break_minutes"])
@@ -537,6 +749,15 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), _: 
         elif plan.completed_volume:
             plan.status = "in_progress"
         db.commit()
+    add_report_event(
+        db,
+        item,
+        event_type="report_created",
+        title="Звіт опубліковано",
+        body=f"Створено щоденний звіт {item.report_number}.",
+        tone="success",
+        actor_id=current_user.id,
+    )
     return db.scalar(report_query(db).where(DailyReport.id == item.id))
 
 
@@ -549,7 +770,7 @@ def get_report(item_id: int, db: Session = Depends(get_db), _: User = Depends(ge
 
 
 @router.patch("/daily-reports/{item_id}", response_model=DailyReportOut, tags=["daily reports"])
-def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> DailyReport:
+def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> DailyReport:
     data = payload.model_dump(exclude_unset=True)
     item = get_or_404(db, DailyReport, item_id)
     item.status = normalize_report_status(item.status)
@@ -563,6 +784,15 @@ def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depend
     if "status" in data and data["status"] is not None:
         data["status"] = normalize_report_status(data["status"])
     update_item(db, item, data)
+    add_report_event(
+        db,
+        item,
+        event_type="report_updated",
+        title="Звіт оновлено",
+        body="Опис робіт або робочі параметри були змінені.",
+        tone="neutral",
+        actor_id=current_user.id,
+    )
     return db.scalar(report_query(db).where(DailyReport.id == item_id))
 
 
@@ -592,6 +822,18 @@ def change_report_status(item_id: int, payload: ReportStatusUpdate, db: Session 
     item.rejection_reason = payload.rejection_reason
     db.commit()
     db.refresh(item)
+    body = f"Статус змінено з «{report_status_title(current_status)}» на «{report_status_title(next_status)}»."
+    if payload.rejection_reason:
+        body = f"{body} Причина: {payload.rejection_reason}"
+    add_report_event(
+        db,
+        item,
+        event_type="status_changed",
+        title=report_status_title(next_status),
+        body=body,
+        tone=report_status_tone(next_status),
+        actor_id=current_user.id,
+    )
     return db.scalar(report_query(db).where(DailyReport.id == item_id))
 
 
@@ -603,6 +845,48 @@ def delete_report(item_id: int, db: Session = Depends(get_db), _: User = Depends
 @router.post("/report-photos", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
 def create_photo_metadata(payload: ReportPhotoCreate, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> ReportPhoto:
     return create_item(db, ReportPhoto, payload.model_dump())
+
+
+@router.post("/reports/{item_id}/media", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
+@router.post("/daily-reports/{item_id}/media", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
+async def upload_report_media(item_id: int, file: UploadFile = File(...), caption: str | None = Form(None), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> ReportPhoto:
+    report = get_or_404(db, DailyReport, item_id)
+    content = await file.read()
+    photo = ReportPhoto(
+        daily_report_id=item_id,
+        file_name=file.filename or "media.bin",
+        file_url="",
+        caption=caption or file.filename or "Медіафайл",
+        content_type=file.content_type,
+        size_bytes=len(content),
+        file_blob=content,
+    )
+    db.add(photo)
+    db.flush()
+    photo.file_url = f"/report-photos/{photo.id}/content"
+    db.commit()
+    db.refresh(photo)
+    add_report_event(
+        db,
+        report,
+        event_type="media_uploaded",
+        title="Додано медіафайл",
+        body=f"Файл «{photo.file_name}» прикріплено до звіту.",
+        tone="success",
+        actor_id=current_user.id,
+    )
+    return photo
+
+
+@router.get("/report-photos/{item_id}/content", tags=["report photos"])
+def get_report_photo_content(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    photo = get_or_404(db, ReportPhoto, item_id)
+    if photo.file_blob is not None:
+        headers = {"Content-Disposition": f'inline; filename="{photo.file_name}"'}
+        return StreamingResponse(BytesIO(photo.file_blob), media_type=photo.content_type or "application/octet-stream", headers=headers)
+    if photo.file_url and photo.file_url.startswith(("http://", "https://")):
+        return RedirectResponse(photo.file_url)
+    raise HTTPException(status_code=404, detail="Media content not available")
 
 
 def _list_report_comments(item_id: int, db: Session) -> list[ReportComment]:
@@ -630,6 +914,13 @@ def _create_report_comment(item_id: int, payload: ReportCommentCreate, db: Sessi
 @router.get("/daily-reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
 def list_report_comments(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportComment]:
     return _list_report_comments(item_id, db)
+
+
+@router.get("/reports/{item_id}/activity", response_model=list[ReportActivityItemOut], tags=["daily reports"])
+@router.get("/daily-reports/{item_id}/activity", response_model=list[ReportActivityItemOut], tags=["daily reports"])
+def list_report_activity(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportActivityItemOut]:
+    get_or_404(db, DailyReport, item_id)
+    return report_activity_items(item_id, db)
 
 
 @router.post("/reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])

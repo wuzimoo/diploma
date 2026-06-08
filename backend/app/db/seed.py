@@ -16,6 +16,7 @@ from app.models import (
     MaterialRequestItem,
     ObjectAssignment,
     ReportComment,
+    ReportEvent,
     ReportPhoto,
     Role,
     User,
@@ -143,6 +144,33 @@ def enrich_demo_data(db) -> None:
                 db.add(ReportComment(report=report, author=worker_user, body="Додав фото з другого поверху та оновив виконаний обсяг."))
             if foreman_user:
                 db.add(ReportComment(report=report, author=foreman_user, body="Перевіряю трасування. Якщо все ок, передам на фінальне погодження."))
+        if not db.scalar(select(ReportEvent).where(ReportEvent.report_id == report.id, ReportEvent.event_type == "report_created")):
+            db.add(ReportEvent(report=report, actor=employee.user or worker_user, event_type="report_created", title="Звіт опубліковано", body=f"Створено щоденний звіт {number}.", tone="success"))
+        if status in {"submitted", "foreman_approved", "admin_approved", "rejected", "change_requested"}:
+            status_title = {
+                "submitted": "Надіслано бригадиру",
+                "foreman_approved": "Погоджено бригадиром",
+                "admin_approved": "Фінально погоджено",
+                "rejected": "Відхилено",
+                "change_requested": "Потрібні зміни",
+            }[status]
+            if not db.scalar(select(ReportEvent).where(ReportEvent.report_id == report.id, ReportEvent.event_type == "status_changed", ReportEvent.title == status_title)):
+                actor = foreman_user if status == "foreman_approved" else admin_user if status == "admin_approved" else employee.user or worker_user
+                db.add(ReportEvent(report=report, actor=actor, event_type="status_changed", title=status_title, body=f"Статус звіту переведено у стан {status_title.lower()}.", tone="success" if status == "admin_approved" else "warning" if status in {"submitted", "foreman_approved"} else "danger"))
+
+    for report in db.scalars(select(DailyReport)).all():
+        if not db.scalar(select(ReportEvent).where(ReportEvent.report_id == report.id, ReportEvent.event_type == "report_created")):
+            db.add(ReportEvent(report=report, actor=report.employee.user or worker_user, event_type="report_created", title="Звіт опубліковано", body=f"Створено щоденний звіт {report.report_number}.", tone="success"))
+        status_title = {
+            "submitted": "Надіслано бригадиру",
+            "foreman_approved": "Погоджено бригадиром",
+            "admin_approved": "Фінально погоджено",
+            "rejected": "Відхилено",
+            "change_requested": "Потрібні зміни",
+        }.get(report.status)
+        if status_title and not db.scalar(select(ReportEvent).where(ReportEvent.report_id == report.id, ReportEvent.event_type == "status_changed", ReportEvent.title == status_title)):
+            actor = foreman_user if report.status == "foreman_approved" else admin_user if report.status == "admin_approved" else report.employee.user or worker_user
+            db.add(ReportEvent(report=report, actor=actor, event_type="status_changed", title=status_title, body=f"Поточний статус звіту: {status_title.lower()}.", tone="success" if report.status == "admin_approved" else "warning" if report.status in {"submitted", "foreman_approved"} else "danger"))
 
     db.commit()
 
@@ -225,6 +253,19 @@ def run_seed() -> None:
                 ReportComment(report=reports[2], author=users[0], body="Фінально погоджено для включення в payroll."),
             ]
         )
+
+        for report in reports:
+            db.add(ReportEvent(report=report, actor=report.employee.user or users[2], event_type="report_created", title="Звіт опубліковано", body=f"Створено щоденний звіт {report.report_number}.", tone="success"))
+            status_title = {
+                "submitted": "Надіслано бригадиру",
+                "foreman_approved": "Погоджено бригадиром",
+                "admin_approved": "Фінально погоджено",
+                "rejected": "Відхилено",
+                "change_requested": "Потрібні зміни",
+            }.get(report.status)
+            if status_title:
+                actor = users[1] if report.status == "foreman_approved" else users[0] if report.status == "admin_approved" else report.employee.user or users[2]
+                db.add(ReportEvent(report=report, actor=actor, event_type="status_changed", title=status_title, body=f"Поточний статус звіту: {status_title.lower()}.", tone="success" if report.status == "admin_approved" else "warning" if report.status in {"submitted", "foreman_approved"} else "danger"))
 
         materials = [
             Material(sku="CBL-NYM-3X2.5", name="Кабель NYM 3x2.5", unit="m", default_price=1.85),

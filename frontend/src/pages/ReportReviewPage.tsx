@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { ReportComments } from "../components/ReportComments";
+import { ReportMediaGallery } from "../components/ReportMediaGallery";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
@@ -72,9 +73,7 @@ export function ReportReviewPage() {
         </div>
         <label className="field">Опис робіт<textarea value={report.work_description} readOnly /></label>
         {report.media_note && <div className="warning-note">{report.media_note}</div>}
-        <div className="photo-grid">
-          {report.photos.length ? report.photos.map((photo) => <div className="photo-card" key={photo.id}>{photo.caption || photo.file_name}</div>) : <div className="photo-card">Фото не додано</div>}
-        </div>
+        <ReportMediaGallery photos={report.photos} />
         <div className="summary-grid-desktop report-stage-grid">
           <article className="summary-tile"><p>Етап</p><strong>{STAGE_LABELS[report.status] || report.status}</strong></article>
           <article className="summary-tile"><p>Бригадир</p><strong>{report.foreman_reviewed_at ? new Date(report.foreman_reviewed_at).toLocaleString("uk-UA") : "Очікується"}</strong></article>

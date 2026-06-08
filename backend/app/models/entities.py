@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text, Time, func
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, Numeric, String, Text, Time, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -35,6 +35,7 @@ class User(Base, TimestampMixin):
     role: Mapped[Role] = relationship(back_populates="users")
     employee: Mapped["Employee | None"] = relationship(back_populates="user", uselist=False)
     report_comments: Mapped[list["ReportComment"]] = relationship(back_populates="author")
+    report_events: Mapped[list["ReportEvent"]] = relationship(back_populates="actor")
 
 
 class Employee(Base, TimestampMixin):
@@ -177,6 +178,7 @@ class DailyReport(Base, TimestampMixin):
     work_plan_item: Mapped[WorkPlanItem | None] = relationship(back_populates="daily_reports")
     photos: Mapped[list["ReportPhoto"]] = relationship(back_populates="daily_report", cascade="all, delete-orphan")
     comments: Mapped[list["ReportComment"]] = relationship(back_populates="report", cascade="all, delete-orphan")
+    events: Mapped[list["ReportEvent"]] = relationship(back_populates="report", cascade="all, delete-orphan")
 
 
 class ReportPhoto(Base, TimestampMixin):
@@ -187,6 +189,9 @@ class ReportPhoto(Base, TimestampMixin):
     file_name: Mapped[str] = mapped_column(String(255))
     file_url: Mapped[str] = mapped_column(String(500))
     caption: Mapped[str | None] = mapped_column(String(255))
+    content_type: Mapped[str | None] = mapped_column(String(120))
+    size_bytes: Mapped[int | None] = mapped_column(Integer)
+    file_blob: Mapped[bytes | None] = mapped_column(LargeBinary)
     daily_report: Mapped[DailyReport] = relationship(back_populates="photos")
 
 
@@ -199,6 +204,20 @@ class ReportComment(Base, TimestampMixin):
     body: Mapped[str] = mapped_column(Text)
     report: Mapped[DailyReport] = relationship(back_populates="comments")
     author: Mapped[User] = relationship(back_populates="report_comments")
+
+
+class ReportEvent(Base, TimestampMixin):
+    __tablename__ = "report_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    report_id: Mapped[int] = mapped_column(ForeignKey("daily_reports.id"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    event_type: Mapped[str] = mapped_column(String(60), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str | None] = mapped_column(Text)
+    tone: Mapped[str] = mapped_column(String(20), default="neutral")
+    report: Mapped[DailyReport] = relationship(back_populates="events")
+    actor: Mapped[User | None] = relationship(back_populates="report_events")
 
 
 class Material(Base, TimestampMixin):

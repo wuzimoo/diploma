@@ -5,7 +5,9 @@ export function MobileLayout() {
   return (
     <div className="mobile-page">
       <div className="mobile-shell">
-        <Outlet />
+        <div className="mobile-screen">
+          <Outlet />
+        </div>
         <nav className="bottom-nav">
           <NavLink to="/worker"><Home size={18} />Головна</NavLink>
           <NavLink to="/worker/reports/new"><ClipboardPlus size={18} />Звіт</NavLink>
@@ -16,4 +18,3 @@ export function MobileLayout() {
     </div>
   );
 }
-
