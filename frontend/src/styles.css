@@ -238,6 +238,7 @@ p {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  align-content: start;
 }
 
 .desktop-page {
@@ -479,6 +480,7 @@ p {
 
 .cards-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  align-items: start;
 }
 
 .report-item {
@@ -1135,6 +1137,36 @@ textarea {
 .employee-card {
   display: grid;
   gap: 8px;
+  align-content: start;
+}
+
+.more-page-content {
+  grid-auto-rows: max-content;
+}
+
+.more-profile-card {
+  gap: 18px;
+  padding: 18px;
+}
+
+.more-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.more-profile-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #fff7f5 0%, #ffeceb 100%);
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px rgba(179, 38, 30, 0.08);
+  flex: 0 0 auto;
 }
 
 .crew-card-actions,
@@ -1208,8 +1240,9 @@ textarea {
 .employee-card-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 8px 12px;
+  min-width: 0;
 }
 
 .employee-card-role {
@@ -1217,6 +1250,7 @@ textarea {
   align-items: center;
   font-size: 0.94rem;
   font-weight: 700;
+  color: #64748b;
 }
 
 .planner-fields {
@@ -1427,6 +1461,20 @@ textarea {
   flex-wrap: wrap;
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.employee-access-row {
+  align-items: flex-start;
+}
+
+.employee-card p,
+.employee-card strong,
+.employee-card small,
+.employee-card span,
+.crew-card p,
+.crew-card strong,
+.crew-card span {
+  overflow-wrap: anywhere;
 }
 
 .access-form {
