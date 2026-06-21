@@ -21,6 +21,17 @@ api.interceptors.request.use((config) => {
 
 export function resolveApiUrl(path: string) {
   if (!path) return path;
-  if (/^https?:\/\//i.test(path)) return path;
-  return `${API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith("/report-photos/")
+    ? `/api${path}`
+    : path;
+
+  if (/^https?:\/\//i.test(normalizedPath)) {
+    const url = new URL(normalizedPath);
+    if (url.pathname.startsWith("/report-photos/")) {
+      url.pathname = `/api${url.pathname}`;
+    }
+    return url.toString();
+  }
+
+  return `${API_ORIGIN}${normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`}`;
 }

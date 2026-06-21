@@ -863,7 +863,7 @@ async def upload_report_media(item_id: int, file: UploadFile = File(...), captio
     )
     db.add(photo)
     db.flush()
-    photo.file_url = f"/report-photos/{photo.id}/content"
+    photo.file_url = f"/api/report-photos/{photo.id}/content"
     db.commit()
     db.refresh(photo)
     add_report_event(
