@@ -776,6 +776,27 @@ textarea {
   background: #dfe4eb;
 }
 
+.media-preview-placeholder {
+  width: 100%;
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #dfe4eb;
+  color: #6a7485;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.media-preview-placeholder.is-loading {
+  color: #7d8797;
+}
+
+.media-preview-placeholder.has-error {
+  color: #b42318;
+  background: #fef3f2;
+}
+
 .media-card video {
   min-height: 180px;
 }
