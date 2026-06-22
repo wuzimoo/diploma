@@ -102,7 +102,9 @@ export function EmployeesPage() {
   async function saveEmployee(event: FormEvent) {
     event.preventDefault();
     if (!selectedEmployee) return;
-    const error = employeeError(editForm);
+    const error = employeeError(editForm, {
+      requirePasswordForAccess: !selectedEmployee.user && Boolean(editForm.access_email.trim())
+    });
     setEditError(error);
     if (error) return;
     try {
@@ -113,9 +115,14 @@ export function EmployeesPage() {
         phone: editForm.phone.trim() || null,
         hourly_rate: Number(editForm.hourly_rate),
         access_email: editForm.access_email.trim() || null,
+        access_password: editForm.access_password.trim() || null,
         access_role_code: editForm.access_email.trim() ? editForm.access_role_code : null
       });
-      pushToast({ tone: "success", title: "Дані оновлено", description: "Картку працівника збережено." });
+      pushToast({
+        tone: "success",
+        title: "Дані оновлено",
+        description: selectedEmployee.user ? "Картку працівника збережено." : "Працівника збережено, доступ до системи створено."
+      });
       setSelectedEmployee(null);
       load();
     } catch (error: any) {
@@ -271,10 +278,24 @@ export function EmployeesPage() {
                   <label className="field">Роль доступу<select value={editForm.access_role_code} onChange={(event) => setEditForm({ ...editForm, access_role_code: event.target.value })}><option value="worker">worker</option><option value="foreman">foreman</option><option value="admin">admin</option></select></label>
                 </div>
                 <div className="field-row access-fields">
-                  <label className="field">Новий пароль<input type="password" value={editForm.access_password} onChange={(event) => setEditForm({ ...editForm, access_password: event.target.value })} placeholder="залиште порожнім без зміни" /></label>
+                  <label className="field">
+                    {selectedEmployee.user ? "Новий пароль" : "Тимчасовий пароль"}
+                    <input
+                      type="password"
+                      value={editForm.access_password}
+                      onChange={(event) => setEditForm({ ...editForm, access_password: event.target.value })}
+                      placeholder={selectedEmployee.user ? "залиште порожнім без зміни" : "вкажіть пароль для створення акаунта"}
+                    />
+                  </label>
                   <div className="access-actions">
-                    <span className="text-muted">{selectedEmployee.user ? `Статус доступу: ${selectedEmployee.user.is_active ? "active" : "inactive"}` : "Акаунт ще не створено"}</span>
-                    <button className="btn btn-secondary btn-sm" disabled={savingPassword} type="button" onClick={updatePassword}><KeyRound size={16} />Змінити пароль</button>
+                    <span className="text-muted">
+                      {selectedEmployee.user
+                        ? `Статус доступу: ${selectedEmployee.user.is_active ? "active" : "inactive"}`
+                        : "Акаунт ще не створено. Вкажіть email і тимчасовий пароль, потім збережіть зміни."}
+                    </span>
+                    {selectedEmployee.user ? (
+                      <button className="btn btn-secondary btn-sm" disabled={savingPassword} type="button" onClick={updatePassword}><KeyRound size={16} />Змінити пароль</button>
+                    ) : null}
                   </div>
                 </div>
               </section>

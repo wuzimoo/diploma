@@ -109,6 +109,27 @@ def employee_full_name(first_name: str, last_name: str) -> str:
     return f"{first_name.strip()} {last_name.strip()}".strip()
 
 
+def employee_for_user(db: Session, current_user: User) -> Employee | None:
+    return db.scalar(select(Employee).where(Employee.user_id == current_user.id))
+
+
+def scope_reports_for_user(stmt, db: Session, current_user: User):
+    if current_user.role.code != "worker":
+        return stmt
+    employee = employee_for_user(db, current_user)
+    if not employee:
+        return stmt.where(DailyReport.employee_id == -1)
+    return stmt.where(DailyReport.employee_id == employee.id)
+
+
+def ensure_report_access(db: Session, report: DailyReport, current_user: User) -> None:
+    if current_user.role.code != "worker":
+        return
+    employee = employee_for_user(db, current_user)
+    if not employee or report.employee_id != employee.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостатньо прав для перегляду цього звіту")
+
+
 def apply_employee_access(db: Session, employee: Employee, access_email: str | None, access_password: str | None, access_role_code: str | None, access_is_active: bool | None) -> None:
     if access_email is None and access_password is None and access_role_code is None and access_is_active is None:
         return
@@ -702,9 +723,10 @@ def list_reports(
     date_to: date | None = None,
     search: str | None = None,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> list[DailyReport]:
     stmt = report_query(db).join(Employee, DailyReport.employee_id == Employee.id).join(ConstructionObject, DailyReport.construction_object_id == ConstructionObject.id)
+    stmt = scope_reports_for_user(stmt, db, current_user)
     if status_filter:
         stmt = stmt.where(DailyReport.status == status_filter)
     if employee_id:
@@ -737,6 +759,11 @@ def list_reports(
 @router.post("/daily-reports", response_model=DailyReportOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
 def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> DailyReport:
     data = payload.model_dump()
+    if current_user.role.code == "worker":
+        employee = employee_for_user(db, current_user)
+        if not employee:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Для цього акаунта не прив'язано працівника")
+        data["employee_id"] = employee.id
     data["report_number"] = data["report_number"] or next_report_number(db)
     data["worked_hours"] = data["worked_hours"] or calculate_worked_hours(data["start_time"], data["end_time"], data["break_minutes"])
     data["status"] = normalize_report_status(data.get("status") or "submitted")
@@ -762,10 +789,11 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), cur
 
 
 @router.get("/daily-reports/{item_id}", response_model=DailyReportOut, tags=["daily reports"])
-def get_report(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> DailyReport:
+def get_report(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> DailyReport:
     item = db.scalar(report_query(db).where(DailyReport.id == item_id))
     if not item:
         raise HTTPException(status_code=404, detail="DailyReport not found")
+    ensure_report_access(db, item, current_user)
     return item
 
 
@@ -773,6 +801,7 @@ def get_report(item_id: int, db: Session = Depends(get_db), _: User = Depends(ge
 def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> DailyReport:
     data = payload.model_dump(exclude_unset=True)
     item = get_or_404(db, DailyReport, item_id)
+    ensure_report_access(db, item, current_user)
     item.status = normalize_report_status(item.status)
     if item.status not in REPORT_EDITABLE_STATUSES:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Звіт уже погоджено і заблоковано для редагування")
@@ -851,6 +880,7 @@ def create_photo_metadata(payload: ReportPhotoCreate, db: Session = Depends(get_
 @router.post("/daily-reports/{item_id}/media", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
 async def upload_report_media(item_id: int, file: UploadFile = File(...), caption: str | None = Form(None), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> ReportPhoto:
     report = get_or_404(db, DailyReport, item_id)
+    ensure_report_access(db, report, current_user)
     content = await file.read()
     photo = ReportPhoto(
         daily_report_id=item_id,
@@ -879,8 +909,9 @@ async def upload_report_media(item_id: int, file: UploadFile = File(...), captio
 
 
 @router.get("/report-photos/{item_id}/content", tags=["report photos"])
-def get_report_photo_content(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def get_report_photo_content(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     photo = get_or_404(db, ReportPhoto, item_id)
+    ensure_report_access(db, get_or_404(db, DailyReport, photo.daily_report_id), current_user)
     if photo.file_blob is not None:
         headers = {"Content-Disposition": f'inline; filename="{photo.file_name}"'}
         return StreamingResponse(BytesIO(photo.file_blob), media_type=photo.content_type or "application/octet-stream", headers=headers)
@@ -912,20 +943,22 @@ def _create_report_comment(item_id: int, payload: ReportCommentCreate, db: Sessi
 
 @router.get("/reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
 @router.get("/daily-reports/{item_id}/comments", response_model=list[ReportCommentOut], tags=["daily reports"])
-def list_report_comments(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportComment]:
+def list_report_comments(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[ReportComment]:
+    ensure_report_access(db, get_or_404(db, DailyReport, item_id), current_user)
     return _list_report_comments(item_id, db)
 
 
 @router.get("/reports/{item_id}/activity", response_model=list[ReportActivityItemOut], tags=["daily reports"])
 @router.get("/daily-reports/{item_id}/activity", response_model=list[ReportActivityItemOut], tags=["daily reports"])
-def list_report_activity(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[ReportActivityItemOut]:
-    get_or_404(db, DailyReport, item_id)
+def list_report_activity(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[ReportActivityItemOut]:
+    ensure_report_access(db, get_or_404(db, DailyReport, item_id), current_user)
     return report_activity_items(item_id, db)
 
 
 @router.post("/reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
 @router.post("/daily-reports/{item_id}/comments", response_model=ReportCommentOut, status_code=status.HTTP_201_CREATED, tags=["daily reports"])
 def create_report_comment(item_id: int, payload: ReportCommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> ReportComment:
+    ensure_report_access(db, get_or_404(db, DailyReport, item_id), current_user)
     return _create_report_comment(item_id, payload, db, current_user)
 
 
@@ -1062,22 +1095,33 @@ def delete_expense(item_id: int, db: Session = Depends(get_db), _: User = Depend
 
 
 @router.get("/dashboard/analytics", tags=["analytics"])
-def dashboard_analytics(db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> dict:
+def dashboard_analytics(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
+    worker_employee = employee_for_user(db, current_user) if current_user.role.code == "worker" else None
+    report_filters = [DailyReport.employee_id == worker_employee.id] if worker_employee else []
     report_statuses = {"submitted": 0, "foreman_approved": 0, "admin_approved": 0, "rejected": 0, "change_requested": 0, "draft": 0}
-    for raw_status, count in db.execute(select(DailyReport.status, func.count(DailyReport.id)).group_by(DailyReport.status)).all():
+    status_stmt = select(DailyReport.status, func.count(DailyReport.id))
+    if report_filters:
+        status_stmt = status_stmt.where(*report_filters)
+    status_stmt = status_stmt.group_by(DailyReport.status)
+    for raw_status, count in db.execute(status_stmt).all():
         report_statuses[normalize_report_status(raw_status)] = report_statuses.get(normalize_report_status(raw_status), 0) + count
-    total_hours = float(db.scalar(select(func.coalesce(func.sum(DailyReport.worked_hours), 0))) or 0)
+    total_hours_stmt = select(func.coalesce(func.sum(DailyReport.worked_hours), 0))
+    if report_filters:
+        total_hours_stmt = total_hours_stmt.where(*report_filters)
+    total_hours = float(db.scalar(total_hours_stmt) or 0)
     active_objects = db.scalar(select(func.count(ConstructionObject.id)).where(ConstructionObject.status == "active")) or 0
     active_employees = db.scalar(select(func.count(Employee.id)).where(Employee.status == "active")) or 0
     expense_total = float(db.scalar(select(func.coalesce(func.sum(Expense.amount), 0))) or 0)
+    hours_stmt = (
+        select(ConstructionObject.id, ConstructionObject.name, func.sum(DailyReport.worked_hours))
+        .join(DailyReport, DailyReport.construction_object_id == ConstructionObject.id)
+    )
+    if report_filters:
+        hours_stmt = hours_stmt.where(*report_filters)
+    hours_stmt = hours_stmt.group_by(ConstructionObject.id, ConstructionObject.name).order_by(func.sum(DailyReport.worked_hours).desc())
     hours_by_object = [
         {"object": name, "object_id": object_id, "hours": float(hours or 0)}
-        for object_id, name, hours in db.execute(
-            select(ConstructionObject.id, ConstructionObject.name, func.sum(DailyReport.worked_hours))
-            .join(DailyReport, DailyReport.construction_object_id == ConstructionObject.id)
-            .group_by(ConstructionObject.id, ConstructionObject.name)
-            .order_by(func.sum(DailyReport.worked_hours).desc())
-        ).all()
+        for object_id, name, hours in db.execute(hours_stmt).all()
     ]
     object_progress = [
         {"object_id": object_id, "object": name, "progress_percent": float(progress or 0), "status": object_status}
@@ -1098,8 +1142,9 @@ def dashboard_analytics(db: Session = Depends(get_db), _: User = Depends(get_cur
 
 
 @router.get("/calendar/report-summary", tags=["calendar"])
-def calendar_summary(date_from: date | None = None, date_to: date | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[dict]:
+def calendar_summary(date_from: date | None = None, date_to: date | None = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[dict]:
     stmt = select(DailyReport.report_date, DailyReport.status, func.count(DailyReport.id), func.sum(DailyReport.worked_hours)).group_by(DailyReport.report_date, DailyReport.status)
+    stmt = scope_reports_for_user(stmt, db, current_user)
     if date_from:
         stmt = stmt.where(DailyReport.report_date >= date_from)
     if date_to:
@@ -1112,8 +1157,9 @@ def calendar_summary(date_from: date | None = None, date_to: date | None = None,
 
 
 @router.get("/calendar/detailed", tags=["calendar"])
-def calendar_detailed(date_from: date | None = None, date_to: date | None = None, construction_object_id: int | None = None, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> list[dict]:
+def calendar_detailed(date_from: date | None = None, date_to: date | None = None, construction_object_id: int | None = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[dict]:
     stmt = report_query(db)
+    stmt = scope_reports_for_user(stmt, db, current_user)
     if date_from:
         stmt = stmt.where(DailyReport.report_date >= date_from)
     if date_to:
