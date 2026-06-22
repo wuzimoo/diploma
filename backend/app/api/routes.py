@@ -1169,11 +1169,21 @@ def payroll_export_csv(start_date: date, end_date: date, db: Session = Depends(g
     summary = build_payroll_summary(db, start_date, end_date)
     buffer = StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(["employee_id", "name", "position", "hourly_rate", "approved_hours", "total_payment", "reports_count", "pending_count", "rejected_count"])
+    writer.writerow([
+        "ID працівника",
+        "ПІБ",
+        "Посада",
+        "Ставка EUR/год",
+        "Погоджені години",
+        "Сума до виплати EUR",
+        "Кількість звітів",
+        "Очікують погодження",
+        "Відхилені",
+    ])
     for row in summary["employees"]:
         writer.writerow([row["employee_id"], row["name"], row["position"], row["hourly_rate"], row["approved_hours"], row["total_payment"], row["reports_count"], row["pending_count"], row["rejected_count"]])
     return Response(
-        content=buffer.getvalue(),
+        content="\ufeff" + buffer.getvalue(),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="builder-erp-payroll-{start_date.isoformat()}-{end_date.isoformat()}.csv"'},
     )
