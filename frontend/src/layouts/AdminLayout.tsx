@@ -2,6 +2,7 @@ import { BarChart3, Building2, CalendarDays, ClipboardList, HardHat, LogOut, Rec
 import { NavLink, Outlet } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
+import { APP_NAME, APP_ROLE_FALLBACK } from "../lib/branding";
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -12,18 +13,18 @@ export function AdminLayout() {
       <div className="desktop-shell">
         <header className="desktop-header">
           <div className="brand">
-            <h1>Kairos Builder</h1>
-            <p>{user?.role.name || "Керування будівельною компанією"}</p>
+            <h1>{APP_NAME}</h1>
+            <p>{user?.role.name || APP_ROLE_FALLBACK}</p>
           </div>
           <nav className="top-links">
-            <NavLink to="/admin"><BarChart3 size={18} />Панель</NavLink>
-            <NavLink to="/admin/reports"><ClipboardList size={18} />Звіти</NavLink>
-            <NavLink to="/admin/calendar"><CalendarDays size={18} />Календар</NavLink>
-            <NavLink to="/admin/objects"><Building2 size={18} />Об'єкти</NavLink>
-            {isAdmin ? <NavLink to="/admin/employees"><Users size={18} />Працівники</NavLink> : null}
-            {isAdmin ? <NavLink to="/admin/crews"><HardHat size={18} />Бригади</NavLink> : null}
-            {isAdmin ? <NavLink to="/admin/payroll"><ReceiptText size={18} />Оплати</NavLink> : null}
-            <button className="link-button" onClick={logout} type="button"><LogOut size={18} />Вийти</button>
+            <NavLink to="/admin"><BarChart3 size={18} />Cockpit</NavLink>
+            <NavLink to="/admin/reports"><ClipboardList size={18} />Berichte</NavLink>
+            <NavLink to="/admin/calendar"><CalendarDays size={18} />Kalender</NavLink>
+            <NavLink to="/admin/objects"><Building2 size={18} />Projekte</NavLink>
+            {isAdmin ? <NavLink to="/admin/employees"><Users size={18} />Mitarbeiter</NavLink> : null}
+            {isAdmin ? <NavLink to="/admin/crews"><HardHat size={18} />Teams</NavLink> : null}
+            {isAdmin ? <NavLink to="/admin/payroll"><ReceiptText size={18} />Lohn</NavLink> : null}
+            <button className="link-button" onClick={logout} type="button"><LogOut size={18} />Abmelden</button>
           </nav>
         </header>
         <Outlet />

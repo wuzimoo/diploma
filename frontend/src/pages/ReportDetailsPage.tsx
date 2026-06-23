@@ -6,6 +6,7 @@ import { ReportComments } from "../components/ReportComments";
 import { ReportMediaGallery } from "../components/ReportMediaGallery";
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/useToast";
+import { formatDate, formatHours } from "../lib/format";
 import { api } from "../services/api";
 import { DailyReport } from "../types/api";
 
@@ -48,15 +49,15 @@ export function ReportDetailsPage() {
     event.preventDefault();
     if (!report) return;
     if (!form.work_description.trim() || form.work_description.trim().length < 5) {
-      setError("Опис робіт має містити щонайменше 5 символів.");
+      setError("Die Arbeitsbeschreibung muss mindestens 5 Zeichen lang sein.");
       return;
     }
     if (form.end_time <= form.start_time) {
-      setError("Час завершення має бути пізнішим за час початку.");
+      setError("Die Endzeit muss nach der Startzeit liegen.");
       return;
     }
     if (form.break_minutes < 0) {
-      setError("Перерва не може бути від'ємною.");
+      setError("Die Pause darf nicht negativ sein.");
       return;
     }
     setError("");
@@ -67,13 +68,13 @@ export function ReportDetailsPage() {
       completed_volume: form.completed_volume ? Number(form.completed_volume) : null,
       work_description: form.work_description.trim()
     });
-    pushToast({ tone: "success", title: "Звіт оновлено", description: "Зміни збережено до погодження." });
+    pushToast({ tone: "success", title: "Bericht aktualisiert", description: "Die Anderungen wurden gespeichert." });
     setEditing(false);
     load();
   }
 
   if (!report) {
-    return <main className="mobile-content"><div className="summary-card">Завантаження...</div></main>;
+    return <main className="mobile-content"><div className="summary-card">Wird geladen...</div></main>;
   }
 
   return (
@@ -84,19 +85,19 @@ export function ReportDetailsPage() {
             <h1>{report.report_number}</h1>
             <p>{report.construction_object.name}</p>
           </div>
-          {canEdit(report) ? <button className="icon-btn" type="button" aria-label="Редагувати звіт" onClick={() => setEditing(true)}><Pencil size={18} /></button> : null}
+          {canEdit(report) ? <button className="icon-btn" type="button" aria-label="Bericht bearbeiten" onClick={() => setEditing(true)}><Pencil size={18} /></button> : null}
         </div>
       </header>
       <main className="mobile-content">
         <section className="summary-card stack">
-          <div className="report-item-top"><strong>{report.report_date}</strong><StatusBadge status={report.status} /></div>
+          <div className="report-item-top"><strong>{formatDate(report.report_date)}</strong><StatusBadge status={report.status} /></div>
           <div className="detail-grid">
-            <span>Працівник</span><strong>{report.employee.first_name} {report.employee.last_name}</strong>
-            <span>Об'єкт</span><strong>{report.construction_object.name}</strong>
-            <span>План робіт</span><strong>{report.work_plan_item?.title || "Не прив'язано"}</strong>
-            <span>Час</span><strong>{report.start_time.slice(0, 5)} - {report.end_time.slice(0, 5)}</strong>
-            <span>Години</span><strong>{report.worked_hours.toFixed(2)} h</strong>
-            <span>Обсяг</span><strong>{report.completed_volume ? `${report.completed_volume} ${report.work_plan_item?.unit || ""}` : "не вказано"}</strong>
+            <span>Mitarbeiter</span><strong>{report.employee.first_name} {report.employee.last_name}</strong>
+            <span>Projekt</span><strong>{report.construction_object.name}</strong>
+            <span>Arbeitspaket</span><strong>{report.work_plan_item?.title || "Nicht zugeordnet"}</strong>
+            <span>Zeit</span><strong>{report.start_time.slice(0, 5)} - {report.end_time.slice(0, 5)}</strong>
+            <span>Stunden</span><strong>{formatHours(report.worked_hours)}</strong>
+            <span>Menge</span><strong>{report.completed_volume ? `${report.completed_volume} ${report.work_plan_item?.unit || ""}` : "nicht angegeben"}</strong>
           </div>
           <p>{report.work_description}</p>
           {report.media_note && <p className="helper">{report.media_note}</p>}
@@ -110,23 +111,23 @@ export function ReportDetailsPage() {
           <section className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="section-head">
               <div>
-                <h3 className="section-title">Редагувати звіт</h3>
-                <p className="section-subtitle">Редагування доступне лише до погодження бригадиром або адміністратором.</p>
+                <h3 className="section-title">Bericht bearbeiten</h3>
+                <p className="section-subtitle">Bearbeitung ist nur vor der Freigabe durch Polier oder Verwaltung moglich.</p>
               </div>
-              <button className="icon-btn" type="button" aria-label="Закрити" onClick={() => setEditing(false)}><X size={18} /></button>
+              <button className="icon-btn" type="button" aria-label="Schliessen" onClick={() => setEditing(false)}><X size={18} /></button>
             </div>
             <form className="stack" onSubmit={save}>
               <div className="field-row">
-                <label className="field">Початок<input type="time" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} /></label>
-                <label className="field">Завершення<input type="time" value={form.end_time} onChange={(event) => setForm({ ...form, end_time: event.target.value })} /></label>
+                <label className="field">Start<input type="time" value={form.start_time} onChange={(event) => setForm({ ...form, start_time: event.target.value })} /></label>
+                <label className="field">Ende<input type="time" value={form.end_time} onChange={(event) => setForm({ ...form, end_time: event.target.value })} /></label>
               </div>
-              <label className="field">Перерва, хв<input type="number" min="0" value={form.break_minutes} onChange={(event) => setForm({ ...form, break_minutes: Number(event.target.value) })} /></label>
-              <label className="field">Виконаний обсяг<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(event) => setForm({ ...form, completed_volume: event.target.value })} /></label>
-              <label className="field">Опис робіт<textarea value={form.work_description} onChange={(event) => setForm({ ...form, work_description: event.target.value })} /></label>
+              <label className="field">Pause, Min.<input type="number" min="0" value={form.break_minutes} onChange={(event) => setForm({ ...form, break_minutes: Number(event.target.value) })} /></label>
+              <label className="field">Ausgefuhrte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(event) => setForm({ ...form, completed_volume: event.target.value })} /></label>
+              <label className="field">Arbeitsbeschreibung<textarea value={form.work_description} onChange={(event) => setForm({ ...form, work_description: event.target.value })} /></label>
               {error ? <div className="form-error">{error}</div> : null}
               <div className="modal-actions">
-                <button className="btn btn-secondary" type="button" onClick={() => setEditing(false)}>Скасувати</button>
-                <button className="btn btn-primary" type="submit">Зберегти</button>
+                <button className="btn btn-secondary" type="button" onClick={() => setEditing(false)}>Abbrechen</button>
+                <button className="btn btn-primary" type="submit">Speichern</button>
               </div>
             </form>
           </section>

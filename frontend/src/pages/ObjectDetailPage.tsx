@@ -5,21 +5,22 @@ import { Link, useParams } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
 import { useToast } from "../hooks/useToast";
+import { formatCurrency, formatDate, formatHours } from "../lib/format";
 import { api } from "../services/api";
 import { ObjectSummary, WorkPlanItem } from "../types/api";
 
 const PLAN_STATUS_LABELS: Record<string, string> = {
-  planned: "Заплановано",
-  in_progress: "У роботі",
-  done: "Завершено",
-  blocked: "Заблоковано",
+  planned: "Geplant",
+  in_progress: "In Arbeit",
+  done: "Abgeschlossen",
+  blocked: "Blockiert",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
-  low: "Низький",
-  normal: "Нормальний",
-  high: "Високий",
-  urgent: "Терміновий",
+  low: "Niedrig",
+  normal: "Normal",
+  high: "Hoch",
+  urgent: "Dringend",
 };
 
 export function ObjectDetailPage() {
@@ -39,7 +40,7 @@ export function ObjectDetailPage() {
     status: "planned",
     planned_start: "",
     planned_end: "",
-    priority: "normal"
+    priority: "normal",
   });
 
   function loadSummary() {
@@ -71,7 +72,7 @@ export function ObjectDetailPage() {
       status: "planned",
       planned_start: "",
       planned_end: "",
-      priority: "normal"
+      priority: "normal",
     });
   }
 
@@ -89,26 +90,26 @@ export function ObjectDetailPage() {
       status: item.status,
       planned_start: item.planned_start || "",
       planned_end: item.planned_end || "",
-      priority: item.priority
+      priority: item.priority,
     });
   }
 
   async function savePlan(event: FormEvent) {
     event.preventDefault();
     if (!planForm.title.trim()) {
-      setPlanError("Назва етапу обов'язкова.");
+      setPlanError("Der Name des Arbeitspakets ist erforderlich.");
       return;
     }
     if (Number(planForm.planned_volume) <= 0) {
-      setPlanError("Плановий обсяг має бути більшим за 0.");
+      setPlanError("Die geplante Menge muss grosser als 0 sein.");
       return;
     }
     if (Number(planForm.completed_volume) < 0) {
-      setPlanError("Виконаний обсяг не може бути від'ємним.");
+      setPlanError("Die erledigte Menge darf nicht negativ sein.");
       return;
     }
     if (planForm.planned_start && planForm.planned_end && planForm.planned_end < planForm.planned_start) {
-      setPlanError("Дата завершення етапу не може бути раніше старту.");
+      setPlanError("Das Enddatum darf nicht vor dem Startdatum liegen.");
       return;
     }
     setPlanError("");
@@ -123,27 +124,27 @@ export function ObjectDetailPage() {
       status: planForm.status,
       planned_start: planForm.planned_start || null,
       planned_end: planForm.planned_end || null,
-      priority: planForm.priority
+      priority: planForm.priority,
     };
     if (editingPlan) {
       await api.patch(`/work-plan-items/${editingPlan.id}`, payload);
-      pushToast({ tone: "success", title: "Етап оновлено", description: "План робіт синхронізовано." });
+      pushToast({ tone: "success", title: "Arbeitspaket aktualisiert", description: "Der Bauplan wurde synchronisiert." });
     } else {
       await api.post("/work-plan-items", payload);
-      pushToast({ tone: "success", title: "Етап додано", description: "Новий етап з'явився у плані робіт." });
+      pushToast({ tone: "success", title: "Arbeitspaket angelegt", description: "Das neue Paket ist im Bauplan sichtbar." });
     }
     setPlanEditorOpen(false);
     setEditingPlan(null);
     loadSummary();
   }
 
-  if (!summary) return <section className="table-card">Завантаження об'єкта...</section>;
+  if (!summary) return <section className="table-card">Projekt wird geladen...</section>;
 
   return (
     <section className="stack">
       <div className="object-hero">
         <div className="stack">
-          <Link className="back-link" to="/admin/objects">Назад до об'єктів</Link>
+          <Link className="back-link" to="/admin/objects">Zuruck zu den Projekten</Link>
           <div className="report-item-top">
             <div>
               <h2>{summary.object.name}</h2>
@@ -151,83 +152,83 @@ export function ObjectDetailPage() {
             </div>
             <StatusBadge status={summary.object.status} />
           </div>
-          <p>{summary.object.description}</p>
+          <p>{summary.object.description || summary.object.work_scope}</p>
         </div>
         <div className="object-progress-card">
-          <div className="progress-ring" style={{ "--progress": `${planPercent}%` } as CSSProperties} aria-label={`Прогрес ${planPercent}%`}>
+          <div className="progress-ring" style={{ "--progress": `${planPercent}%` } as CSSProperties} aria-label={`Fortschritt ${planPercent}%`}>
             <div className="progress-ring-inner">
               <strong>{planPercent}%</strong>
-              <span>виконано</span>
+              <span>erledigt</span>
             </div>
           </div>
         </div>
       </div>
 
       <div className="summary-grid-desktop">
-        <article className="summary-tile"><p>Працівники</p><strong>{summary.employees.length}</strong></article>
-        <article className="summary-tile"><p>Бригади</p><strong>{summary.crews.length}</strong></article>
-        <article className="summary-tile"><p>Години</p><strong>{summary.total_hours.toFixed(1)}</strong></article>
-        <article className="summary-tile"><p>Витрати EUR</p><strong>{summary.expense_total.toFixed(0)}</strong></article>
+        <article className="summary-tile"><p>Mitarbeiter</p><strong>{summary.employees.length}</strong></article>
+        <article className="summary-tile"><p>Teams</p><strong>{summary.crews.length}</strong></article>
+        <article className="summary-tile"><p>Stunden</p><strong>{formatHours(summary.total_hours, 1)}</strong></article>
+        <article className="summary-tile"><p>Kosten</p><strong>{formatCurrency(summary.expense_total)}</strong></article>
       </div>
 
       <section className="table-card stack">
         <div>
-          <h3 className="section-title">Опис і строки</h3>
+          <h3 className="section-title">Leistungsbild und Termine</h3>
           <p className="section-subtitle">{summary.object.work_scope}</p>
         </div>
         <div className="detail-grid-desktop">
-          <div className="detail-tile"><span>План старт</span><strong>{summary.object.planned_start_date || summary.object.start_date}</strong></div>
-          <div className="detail-tile"><span>План фініш</span><strong>{summary.object.planned_end_date || "не задано"}</strong></div>
-          <div className="detail-tile"><span>Відповідальний</span><strong>{summary.object.site_manager || "не задано"}</strong></div>
+          <div className="detail-tile"><span>Planstart</span><strong>{summary.object.planned_start_date || summary.object.start_date ? formatDate(summary.object.planned_start_date || summary.object.start_date || "") : "offen"}</strong></div>
+          <div className="detail-tile"><span>Planende</span><strong>{summary.object.planned_end_date ? formatDate(summary.object.planned_end_date) : "offen"}</strong></div>
+          <div className="detail-tile"><span>Bauleitung</span><strong>{summary.object.site_manager || "offen"}</strong></div>
         </div>
       </section>
 
       <section className="table-card stack">
         <div className="section-head">
-          <h3 className="section-title">План робіт</h3>
-          <button className="btn btn-secondary btn-sm" type="button" onClick={openCreatePlan}><Plus size={16} />Додати етап</button>
+          <h3 className="section-title">Bauplan</h3>
+          <button className="btn btn-secondary btn-sm" type="button" onClick={openCreatePlan}><Plus size={16} />Arbeitspaket</button>
         </div>
         {planEditorOpen ? (
           <form className="planner-editor" onSubmit={savePlan}>
             <div className="section-head">
-              <strong>{editingPlan ? "Редагувати етап" : "Новий етап"}</strong>
-              <button className="icon-btn" type="button" aria-label="Закрити редактор плану" onClick={() => { setPlanEditorOpen(false); setEditingPlan(null); }}>
+              <strong>{editingPlan ? "Arbeitspaket bearbeiten" : "Neues Arbeitspaket"}</strong>
+              <button className="icon-btn" type="button" aria-label="Planeditor schliessen" onClick={() => { setPlanEditorOpen(false); setEditingPlan(null); }}>
                 <X size={18} />
               </button>
             </div>
             <div className="field-row">
-              <label className="field">Назва<input value={planForm.title} onChange={(event) => setPlanForm({ ...planForm, title: event.target.value })} required /></label>
-              <label className="field">Бригада<select value={planForm.crew_id} onChange={(event) => setPlanForm({ ...planForm, crew_id: event.target.value })}>
-                <option value="">Без прив'язки</option>
+              <label className="field">Titel<input value={planForm.title} onChange={(event) => setPlanForm({ ...planForm, title: event.target.value })} required /></label>
+              <label className="field">Team<select value={planForm.crew_id} onChange={(event) => setPlanForm({ ...planForm, crew_id: event.target.value })}>
+                <option value="">Ohne Zuordnung</option>
                 {summary.crews.map((crew) => <option key={crew.id} value={crew.id}>{crew.name}</option>)}
               </select></label>
             </div>
-            <label className="field">Опис<textarea value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} /></label>
+            <label className="field">Beschreibung<textarea value={planForm.description} onChange={(event) => setPlanForm({ ...planForm, description: event.target.value })} /></label>
             <div className="field-row planner-fields">
-              <label className="field">Плановий обсяг<input min="0" step="0.1" type="number" value={planForm.planned_volume} onChange={(event) => setPlanForm({ ...planForm, planned_volume: event.target.value })} /></label>
-              <label className="field">Виконано<input min="0" step="0.1" type="number" value={planForm.completed_volume} onChange={(event) => setPlanForm({ ...planForm, completed_volume: event.target.value })} /></label>
+              <label className="field">Geplante Menge<input min="0" step="0.1" type="number" value={planForm.planned_volume} onChange={(event) => setPlanForm({ ...planForm, planned_volume: event.target.value })} /></label>
+              <label className="field">Erledigte Menge<input min="0" step="0.1" type="number" value={planForm.completed_volume} onChange={(event) => setPlanForm({ ...planForm, completed_volume: event.target.value })} /></label>
             </div>
             <div className="field-row planner-fields">
-              <label className="field">Одиниця<input value={planForm.unit} onChange={(event) => setPlanForm({ ...planForm, unit: event.target.value })} /></label>
-              <label className="field">Статус<select value={planForm.status} onChange={(event) => setPlanForm({ ...planForm, status: event.target.value })}>
-                <option value="planned">Заплановано</option>
-                <option value="in_progress">У роботі</option>
-                <option value="done">Завершено</option>
-                <option value="blocked">Заблоковано</option>
+              <label className="field">Einheit<input value={planForm.unit} onChange={(event) => setPlanForm({ ...planForm, unit: event.target.value })} /></label>
+              <label className="field">Status<select value={planForm.status} onChange={(event) => setPlanForm({ ...planForm, status: event.target.value })}>
+                <option value="planned">Geplant</option>
+                <option value="in_progress">In Arbeit</option>
+                <option value="done">Abgeschlossen</option>
+                <option value="blocked">Blockiert</option>
               </select></label>
             </div>
             <div className="field-row planner-fields">
-              <label className="field">Початок<input type="date" value={planForm.planned_start} onChange={(event) => setPlanForm({ ...planForm, planned_start: event.target.value })} /></label>
-              <label className="field">Фініш<input type="date" value={planForm.planned_end} onChange={(event) => setPlanForm({ ...planForm, planned_end: event.target.value })} /></label>
+              <label className="field">Start<input type="date" value={planForm.planned_start} onChange={(event) => setPlanForm({ ...planForm, planned_start: event.target.value })} /></label>
+              <label className="field">Ende<input type="date" value={planForm.planned_end} onChange={(event) => setPlanForm({ ...planForm, planned_end: event.target.value })} /></label>
             </div>
             <div className="section-head">
-              <label className="field planner-priority">Пріоритет<select value={planForm.priority} onChange={(event) => setPlanForm({ ...planForm, priority: event.target.value })}>
-                <option value="low">Низький</option>
-                <option value="normal">Нормальний</option>
-                <option value="high">Високий</option>
-                <option value="urgent">Терміновий</option>
+              <label className="field planner-priority">Prioritat<select value={planForm.priority} onChange={(event) => setPlanForm({ ...planForm, priority: event.target.value })}>
+                <option value="low">Niedrig</option>
+                <option value="normal">Normal</option>
+                <option value="high">Hoch</option>
+                <option value="urgent">Dringend</option>
               </select></label>
-              <button className="btn btn-primary" type="submit">{editingPlan ? "Зберегти" : "Створити етап"}</button>
+              <button className="btn btn-primary" type="submit">{editingPlan ? "Speichern" : "Paket anlegen"}</button>
             </div>
             {planError ? <div className="form-error">{planError}</div> : null}
           </form>
@@ -237,11 +238,11 @@ export function ObjectDetailPage() {
             const percent = item.planned_volume ? Math.min(100, Math.round((item.completed_volume / item.planned_volume) * 100)) : 0;
             return (
               <article className="planner-item" key={item.id}>
-                <div className="report-item-top"><strong>{item.title}</strong><div className="planner-actions"><StatusBadge status={item.status} /><button className="icon-btn" type="button" aria-label={`Редагувати ${item.title}`} onClick={() => openEditPlan(item)}><Pencil size={16} /></button></div></div>
+                <div className="report-item-top"><strong>{item.title}</strong><div className="planner-actions"><StatusBadge status={item.status} /><button className="icon-btn" type="button" aria-label={`${item.title} bearbeiten`} onClick={() => openEditPlan(item)}><Pencil size={16} /></button></div></div>
                 <p>{item.description}</p>
                 <div className="planner-meta">
                   <span>{PLAN_STATUS_LABELS[item.status] || item.status}</span>
-                  <span>Пріоритет: {PRIORITY_LABELS[item.priority] || item.priority}</span>
+                  <span>Prioritat: {PRIORITY_LABELS[item.priority] || item.priority}</span>
                 </div>
                 <div className="bar-row compact"><span>{item.completed_volume}/{item.planned_volume} {item.unit}</span><div><i style={{ width: `${percent}%` }} /></div><strong>{percent}%</strong></div>
               </article>
@@ -251,26 +252,27 @@ export function ObjectDetailPage() {
       </section>
 
       <section className="table-card stack">
-        <h3 className="section-title">Бригади і працівники</h3>
+        <h3 className="section-title">Teams und Mitarbeiter</h3>
         <div className="cards-grid">
           {summary.crews.map((crew) => (
             <article className="entity-card" key={crew.id}>
               <strong>{crew.name}</strong>
               <span>{crew.specialization}</span>
-              <p>{crew.members.filter((member) => member.is_active).map((member) => `${member.employee?.first_name} ${member.employee?.last_name}`).join(", ") || "Склад не заповнено"}</p>
+              <p>{crew.members.filter((member) => member.is_active).map((member) => `${member.employee?.first_name} ${member.employee?.last_name}`).join(", ") || "Noch keine Teammitglieder hinterlegt"}</p>
             </article>
           ))}
         </div>
       </section>
 
       <section className="table-card stack">
-        <h3 className="section-title">Останні звіти</h3>
-        {summary.reports.map((report) => (
+        <h3 className="section-title">Letzte Berichte</h3>
+        {summary.reports.length ? summary.reports.map((report) => (
           <Link className="report-item" key={report.id} to={`/admin/reports/${report.id}`}>
             <div className="report-item-top"><strong>{report.report_number}</strong><StatusBadge status={report.status} /></div>
             <p>{report.employee.first_name} {report.employee.last_name} · {report.work_description}</p>
+            <div className="report-meta"><span>{formatDate(report.report_date)}</span><strong>{formatHours(report.worked_hours)}</strong></div>
           </Link>
-        ))}
+        )) : <div className="empty-state"><strong>Noch keine Berichte</strong><span>Neue Tagesberichte erscheinen hier automatisch.</span></div>}
       </section>
     </section>
   );

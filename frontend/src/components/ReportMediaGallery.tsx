@@ -49,7 +49,7 @@ function ReportMediaCard({ photo }: { photo: ReportPhoto }) {
 
   const previewPlaceholder = (
     <div className={`media-preview-placeholder${isLoading ? " is-loading" : ""}${hasError ? " has-error" : ""}`}>
-      {hasError ? "Помилка завантаження" : "Завантаження..."}
+      {hasError ? "Vorschau fehlgeschlagen" : "Vorschau wird geladen..."}
     </div>
   );
 
@@ -58,7 +58,7 @@ function ReportMediaCard({ photo }: { photo: ReportPhoto }) {
       <a className="photo-card media-card" href={blobUrl || undefined} rel="noreferrer" target="_blank">
         {blobUrl ? <img alt={photo.caption || photo.file_name} src={blobUrl} /> : previewPlaceholder}
         <div className="media-card-meta">
-          <span className="media-card-label"><ImageIcon size={14} />Зображення</span>
+          <span className="media-card-label"><ImageIcon size={14} />Bild</span>
           <strong>{photo.caption || photo.file_name}</strong>
         </div>
       </a>
@@ -70,7 +70,7 @@ function ReportMediaCard({ photo }: { photo: ReportPhoto }) {
       <a className="photo-card media-card" href={blobUrl || undefined} rel="noreferrer" target="_blank">
         {blobUrl ? <video controls preload="metadata" src={blobUrl} /> : previewPlaceholder}
         <div className="media-card-meta">
-          <span className="media-card-label"><PlayCircle size={14} />Відео</span>
+          <span className="media-card-label"><PlayCircle size={14} />Video</span>
           <strong>{photo.caption || photo.file_name}</strong>
         </div>
       </a>
@@ -80,12 +80,12 @@ function ReportMediaCard({ photo }: { photo: ReportPhoto }) {
   return (
     <a className="photo-card media-card file-media-card" download={photo.file_name} href={blobUrl || undefined} rel="noreferrer" target="_blank">
       <div className="file-media-body">
-        <span className="media-card-label"><FileText size={14} />Файл</span>
+        <span className="media-card-label"><FileText size={14} />Datei</span>
         <strong>{photo.caption || photo.file_name}</strong>
-        <span className="text-muted">{photo.content_type || "Файл"}</span>
+        <span className="text-muted">{photo.content_type || "Datei"}</span>
         {photo.size_bytes ? <small>{Math.max(1, Math.round(photo.size_bytes / 1024))} KB</small> : null}
-        {isLoading ? <small className="text-muted">Завантаження...</small> : null}
-        {hasError ? <small className="text-danger">Помилка завантаження</small> : null}
+        {isLoading ? <small className="text-muted">Wird geladen...</small> : null}
+        {hasError ? <small className="text-danger">Download fehlgeschlagen</small> : null}
       </div>
     </a>
   );
@@ -95,7 +95,7 @@ export function ReportMediaGallery({ photos }: { photos: ReportPhoto[] }) {
   if (!photos.length) {
     return (
       <div className="photo-grid">
-        <div className="photo-card empty-photo-card">Фото або відео не додано</div>
+        <div className="photo-card empty-photo-card">Noch keine Fotos oder Dateien hochgeladen</div>
       </div>
     );
   }

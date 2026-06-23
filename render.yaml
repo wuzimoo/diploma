@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: romans-erp-api
+    name: baupilot-api
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
@@ -18,14 +18,14 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 1440
       - key: CORS_ORIGINS
-        value: https://diploma-ochre.vercel.app,https://diploma-mu6e1osvh-daniils-projects-5bff5a67.vercel.app,https://frontend-pv2bfge8f-daniils-projects-5bff5a67.vercel.app,https://frontend-three-kappa-60.vercel.app,http://localhost:5173
+        value: http://localhost:5173
       - key: DATABASE_URL
         fromDatabase:
-          name: romans-erp-db
+          name: baupilot-db
           property: connectionString
 databases:
-  - name: romans-erp-db
-    databaseName: romans_erp
-    user: romans_erp_user
+  - name: baupilot-db
+    databaseName: baupilot
+    user: baupilot_user
     plan: free
     region: frankfurt

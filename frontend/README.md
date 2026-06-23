@@ -1,8 +1,8 @@
-# Builder ERP Frontend
+# BauPilot Frontend
 
-React + Vite frontend for Builder ERP. The UI is based on the provided `Romans ERP - SCREEN DEMO` screens and connects to the FastAPI backend via REST.
+React- und Vite-Frontend fuer die BauPilot-Demo. Die Anwendung verbindet sich mit dem FastAPI-Backend ueber REST und bildet Mitarbeiter-, Polier- und Admin-Flows ab.
 
-## Local Setup
+## Lokales Setup
 
 ```bash
 cd frontend
@@ -11,19 +11,19 @@ cp .env.example .env
 npm run dev
 ```
 
-Default URL: `http://localhost:5173`.
+Standard-URL: `http://localhost:5173`
 
-Set `VITE_API_URL` to the deployed backend API URL, for example:
+Beispiel fuer die API-Konfiguration:
 
 ```env
-VITE_API_URL=https://diploma-njc4.onrender.com/api
+VITE_API_URL=http://localhost:8000/api
 ```
 
-## E2E Tests
+## E2E-Tests
 
 ```bash
 npm run test:e2e
 npm run test:e2e:report
 ```
 
-The Playwright suite mocks REST API responses in the browser and checks the actual React UI flows for worker and admin screens.
+Die Playwright-Suite mockt die API im Browser und prueft die relevanten Demo-Flows der React-Oberflaeche.

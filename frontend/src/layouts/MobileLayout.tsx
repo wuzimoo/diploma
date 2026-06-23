@@ -9,10 +9,10 @@ export function MobileLayout() {
           <Outlet />
         </div>
         <nav className="bottom-nav">
-          <NavLink to="/worker"><Home size={18} />Головна</NavLink>
-          <NavLink to="/worker/reports/new"><ClipboardPlus size={18} />Звіт</NavLink>
-          <NavLink to="/worker/calendar"><CalendarDays size={18} />Календар</NavLink>
-          <NavLink to="/worker/more"><MoreHorizontal size={18} />Ще</NavLink>
+          <NavLink to="/worker"><Home size={18} />Start</NavLink>
+          <NavLink to="/worker/reports/new"><ClipboardPlus size={18} />Bericht</NavLink>
+          <NavLink to="/worker/calendar"><CalendarDays size={18} />Kalender</NavLink>
+          <NavLink to="/worker/more"><MoreHorizontal size={18} />Mehr</NavLink>
         </nav>
       </div>
     </div>

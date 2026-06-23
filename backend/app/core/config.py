@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Kairos Builder API"
+    app_name: str = "BauPilot API"
     environment: str = "local"
     database_url: str
     secret_key: str

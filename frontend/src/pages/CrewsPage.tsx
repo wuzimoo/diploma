@@ -7,17 +7,17 @@ import { api } from "../services/api";
 import { ConstructionObject, Crew, CrewMember, Employee } from "../types/api";
 import { useToast } from "../hooks/useToast";
 
-const crewFormDefaults = { name: "", specialization: "Електромонтаж", foreman_employee_id: "", current_object_id: "" };
+const crewFormDefaults = { name: "", specialization: "Elektroinstallation", foreman_employee_id: "", current_object_id: "" };
 
 function activeMembers(crew: Crew) {
   return crew.members.filter((member) => member.is_active);
 }
 
 function crewError(form: typeof crewFormDefaults) {
-  if (!form.name.trim()) return "Назва бригади обов'язкова.";
-  if (!form.specialization.trim()) return "Вкажіть профіль бригади.";
-  if (!form.foreman_employee_id) return "Оберіть бригадира.";
-  if (!form.current_object_id) return "Оберіть поточний об'єкт.";
+  if (!form.name.trim()) return "Der Teamname ist erforderlich.";
+  if (!form.specialization.trim()) return "Bitte den fachlichen Schwerpunkt angeben.";
+  if (!form.foreman_employee_id) return "Bitte einen Polier auswahlen.";
+  if (!form.current_object_id) return "Bitte ein aktuelles Projekt auswahlen.";
   return "";
 }
 
@@ -35,7 +35,7 @@ export function CrewsPage() {
 
   const foremanCandidates = useMemo(() => {
     const active = employees.filter((employee) => employee.status === "active");
-    const narrowed = active.filter((employee) => /бригад|прораб|керів|foreman|lead/i.test(employee.position));
+    const narrowed = active.filter((employee) => /polier|bauleit|vorarbeit|foreman|lead/i.test(employee.position));
     return narrowed.length ? narrowed : active;
   }, [employees]);
 
@@ -43,7 +43,7 @@ export function CrewsPage() {
     Promise.all([
       api.get<Crew[]>("/crews"),
       api.get<Employee[]>("/employees", { params: { status_filter: "active" } }),
-      api.get<ConstructionObject[]>("/objects", { params: { status_filter: "active" } })
+      api.get<ConstructionObject[]>("/objects", { params: { status_filter: "active" } }),
     ]).then(([crewResponse, employeeResponse, objectResponse]) => {
       setCrews(crewResponse.data);
       setEmployees(employeeResponse.data);
@@ -51,7 +51,7 @@ export function CrewsPage() {
       setForm((current) => ({
         ...current,
         foreman_employee_id: current.foreman_employee_id || String(employeeResponse.data[0]?.id || ""),
-        current_object_id: current.current_object_id || String(objectResponse.data[0]?.id || "")
+        current_object_id: current.current_object_id || String(objectResponse.data[0]?.id || ""),
       }));
     });
   }
@@ -68,11 +68,11 @@ export function CrewsPage() {
       specialization: form.specialization.trim(),
       foreman_employee_id: Number(form.foreman_employee_id),
       current_object_id: Number(form.current_object_id),
-      status: "active"
+      status: "active",
     });
     setForm(crewFormDefaults);
     setFormError("");
-    pushToast({ tone: "success", title: "Бригаду створено", description: "Нова бригада додана до списку та готова до комплектування." });
+    pushToast({ tone: "success", title: "Team angelegt", description: "Das neue Team wurde erstellt und ist fur die Einsatzplanung bereit." });
     load();
   }
 
@@ -83,7 +83,7 @@ export function CrewsPage() {
     const previousMembership = previousCrew?.members.find((member) => member.employee_id === employeeId && member.is_active);
     if (previousCrew && previousMembership) {
       const confirmed = window.confirm(
-        `${employee?.first_name || "Працівник"} ${employee?.last_name || ""} вже входить до бригади ${previousCrew.name}. Перемістити його до ${currentCrew?.name || "нової бригади"}?`
+        `${employee?.first_name || "Mitarbeiter"} ${employee?.last_name || ""} ist bereits dem Team ${previousCrew.name} zugeordnet. In ${currentCrew?.name || "das neue Team"} verschieben?`,
       );
       if (!confirmed) return;
       await api.patch(`/crew-members/${previousMembership.id}`, { is_active: false });
@@ -92,29 +92,29 @@ export function CrewsPage() {
       await api.post("/crew-members", {
         crew_id: crewId,
         employee_id: employeeId,
-        role_in_crew: "Працівник",
+        role_in_crew: "Mitarbeiter",
         joined_at: new Date().toISOString().slice(0, 10),
-        is_active: true
+        is_active: true,
       });
       setPickerCrewId(null);
       pushToast({
         tone: "success",
-        title: previousCrew ? "Працівника переміщено" : "Працівника додано",
-        description: previousCrew ? "Активна прив'язка до попередньої бригади закрита." : "Склад бригади оновлено."
+        title: previousCrew ? "Mitarbeiter verschoben" : "Mitarbeiter hinzugefugt",
+        description: previousCrew ? "Die bisherige aktive Zuordnung wurde geschlossen." : "Das Team wurde aktualisiert.",
       });
       load();
     } catch (error) {
       const detail = typeof error === "object" && error && "response" in error
         ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
         : undefined;
-      pushToast({ tone: "error", title: "Не вдалося додати працівника", description: detail || "Спробуйте ще раз після оновлення списку." });
+      pushToast({ tone: "error", title: "Mitarbeiter konnte nicht hinzugefugt werden", description: detail || "Bitte nach dem Aktualisieren erneut versuchen." });
     }
   }
 
   async function removeMember(member: CrewMember) {
-    if (!window.confirm(`Прибрати ${member.employee?.first_name} ${member.employee?.last_name} зі складу бригади?`)) return;
+    if (!window.confirm(`${member.employee?.first_name} ${member.employee?.last_name} aus dem Team entfernen?`)) return;
     await api.patch(`/crew-members/${member.id}`, { is_active: false });
-    pushToast({ tone: "info", title: "Працівника відв'язано", description: "Працівник прибраний лише з поточної бригади." });
+    pushToast({ tone: "info", title: "Mitarbeiter entfernt", description: "Die Person wurde nur aus dem aktuellen Team gelost." });
     load();
   }
 
@@ -125,7 +125,7 @@ export function CrewsPage() {
       name: crew.name,
       specialization: crew.specialization,
       foreman_employee_id: crew.foreman_employee_id ? String(crew.foreman_employee_id) : "",
-      current_object_id: crew.current_object_id ? String(crew.current_object_id) : ""
+      current_object_id: crew.current_object_id ? String(crew.current_object_id) : "",
     });
   }
 
@@ -139,17 +139,17 @@ export function CrewsPage() {
       name: editForm.name.trim(),
       specialization: editForm.specialization.trim(),
       foreman_employee_id: Number(editForm.foreman_employee_id),
-      current_object_id: Number(editForm.current_object_id)
+      current_object_id: Number(editForm.current_object_id),
     });
-    pushToast({ tone: "success", title: "Бригаду оновлено", description: "Зміни збережено." });
+    pushToast({ tone: "success", title: "Team aktualisiert", description: "Die Anderungen wurden gespeichert." });
     setEditingCrew(null);
     load();
   }
 
   async function archiveCrew(crew: Crew) {
-    if (!window.confirm(`Архівувати бригаду ${crew.name}?`)) return;
+    if (!window.confirm(`Team ${crew.name} archivieren?`)) return;
     await api.patch(`/crews/${crew.id}`, { status: "archived" });
-    pushToast({ tone: "info", title: "Бригаду архівовано", description: "Бригада залишилась в історії, але прихована з активної роботи." });
+    pushToast({ tone: "info", title: "Team archiviert", description: "Das Team bleibt in der Historie, erscheint aber nicht mehr im aktiven Betrieb." });
     if (editingCrew?.id === crew.id) setEditingCrew(null);
     load();
   }
@@ -158,15 +158,15 @@ export function CrewsPage() {
     <section className="stack">
       <section className="table-card stack">
         <div>
-          <h2 className="section-title">Бригади</h2>
-          <p className="section-subtitle">Формуйте склад, закріплюйте бригадирів і змінюйте поточні об'єкти без переходу в окрему систему.</p>
+          <h2 className="section-title">Teams</h2>
+          <p className="section-subtitle">Teams zusammenstellen, Poliere zuweisen und Projekte ohne Systemwechsel umplanen.</p>
         </div>
         <form className="inline-form" onSubmit={createCrew}>
-          <label className="field">Назва<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Бригада Berlin Ost" required /></label>
-          <label className="field">Профіль<input value={form.specialization} onChange={(event) => setForm({ ...form, specialization: event.target.value })} required /></label>
-          <label className="field">Бригадир<select value={form.foreman_employee_id} onChange={(event) => setForm({ ...form, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
-          <label className="field">Поточний об'єкт<select value={form.current_object_id} onChange={(event) => setForm({ ...form, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
-          <button className="btn btn-primary" type="submit">Додати бригаду</button>
+          <label className="field">Teamname<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Team Berlin Ost" required /></label>
+          <label className="field">Schwerpunkt<input value={form.specialization} onChange={(event) => setForm({ ...form, specialization: event.target.value })} required /></label>
+          <label className="field">Polier<select value={form.foreman_employee_id} onChange={(event) => setForm({ ...form, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
+          <label className="field">Aktuelles Projekt<select value={form.current_object_id} onChange={(event) => setForm({ ...form, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
+          <button className="btn btn-primary" type="submit">Team anlegen</button>
         </form>
         {formError ? <div className="form-error">{formError}</div> : null}
       </section>
@@ -179,13 +179,13 @@ export function CrewsPage() {
             <article className="entity-card crew-card" key={crew.id}>
               <div className="report-item-top"><strong>{crew.name}</strong><StatusBadge status={crew.status} /></div>
               <span>{crew.specialization}</span>
-              <p>Об'єкт: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{crew.current_object.name}</Link> : "не закріплено"}</p>
-              <p>Бригадир: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : "не задано"}</p>
+              <p>Projekt: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{crew.current_object.name}</Link> : "nicht zugeordnet"}</p>
+              <p>Polier: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : "offen"}</p>
               <div className="member-list">
                 {members.map((member) => (
                   <span className="member-pill" key={member.id}>
                     <span>{member.employee?.first_name} {member.employee?.last_name} · {member.role_in_crew}</span>
-                    <button className="member-remove" type="button" aria-label={`Прибрати ${member.employee?.first_name} ${member.employee?.last_name}`} onClick={() => removeMember(member)}>
+                    <button className="member-remove" type="button" aria-label={`${member.employee?.first_name} ${member.employee?.last_name} entfernen`} onClick={() => removeMember(member)}>
                       <Trash2 size={14} />
                     </button>
                   </span>
@@ -193,19 +193,19 @@ export function CrewsPage() {
               </div>
               <div className="crew-card-actions">
                 <div className="card-actions">
-                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(crew)}><Pencil size={16} />Редагувати</button>
-                  {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />Архівувати</button> : null}
+                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(crew)}><Pencil size={16} />Bearbeiten</button>
+                  {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />Archivieren</button> : null}
                 </div>
                 <div className="crew-inline-picker-toggle">
-                  <span className="crew-members-label">Склад бригади</span>
-                  <button className="icon-btn" type="button" aria-label="Додати працівника" onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
+                  <span className="crew-members-label">Teammitglieder</span>
+                  <button className="icon-btn" type="button" aria-label="Mitarbeiter hinzufugen" onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
                     {pickerCrewId === crew.id ? <X size={18} /> : <Plus size={18} />}
                   </button>
                 </div>
               </div>
               {pickerCrewId === crew.id ? (
                 <div className="member-picker">
-                  <strong>Додати працівника</strong>
+                  <strong>Mitarbeiter hinzufugen</strong>
                   <div className="member-picker-grid">
                     {availableEmployees.map((employee) => (
                       <button className="member-picker-card" key={employee.id} type="button" onClick={() => addMember(crew.id, employee.id)}>
@@ -213,7 +213,7 @@ export function CrewsPage() {
                         <span>{employee.position}</span>
                       </button>
                     ))}
-                    {availableEmployees.length === 0 ? <p className="helper">Усі доступні працівники вже додані до цієї бригади.</p> : null}
+                    {availableEmployees.length === 0 ? <p className="helper">Alle verfugbaren Mitarbeiter sind diesem Team bereits zugeordnet.</p> : null}
                   </div>
                 </div>
               ) : null}
@@ -227,22 +227,22 @@ export function CrewsPage() {
           <section className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="section-head">
               <div>
-                <h3 className="section-title">Редагування бригади</h3>
-                <p className="section-subtitle">Оновіть назву, профіль, бригадира та поточний об'єкт.</p>
+                <h3 className="section-title">Team bearbeiten</h3>
+                <p className="section-subtitle">Name, Schwerpunkt, Polier und aktuelles Projekt anpassen.</p>
               </div>
-              <button className="icon-btn" type="button" aria-label="Закрити" onClick={() => setEditingCrew(null)}><X size={18} /></button>
+              <button className="icon-btn" type="button" aria-label="Schliessen" onClick={() => setEditingCrew(null)}><X size={18} /></button>
             </div>
             <form className="stack" onSubmit={saveCrew}>
-              <label className="field">Назва<input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required /></label>
-              <label className="field">Профіль<input value={editForm.specialization} onChange={(event) => setEditForm({ ...editForm, specialization: event.target.value })} required /></label>
+              <label className="field">Teamname<input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required /></label>
+              <label className="field">Schwerpunkt<input value={editForm.specialization} onChange={(event) => setEditForm({ ...editForm, specialization: event.target.value })} required /></label>
               <div className="field-row">
-                <label className="field">Бригадир<select value={editForm.foreman_employee_id} onChange={(event) => setEditForm({ ...editForm, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
-                <label className="field">Об'єкт<select value={editForm.current_object_id} onChange={(event) => setEditForm({ ...editForm, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
+                <label className="field">Polier<select value={editForm.foreman_employee_id} onChange={(event) => setEditForm({ ...editForm, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
+                <label className="field">Projekt<select value={editForm.current_object_id} onChange={(event) => setEditForm({ ...editForm, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
               </div>
               {editError ? <div className="form-error">{editError}</div> : null}
               <div className="modal-actions">
-                <button className="btn btn-secondary" type="button" onClick={() => setEditingCrew(null)}>Скасувати</button>
-                <button className="btn btn-primary" type="submit">Зберегти зміни</button>
+                <button className="btn btn-secondary" type="button" onClick={() => setEditingCrew(null)}>Abbrechen</button>
+                <button className="btn btn-primary" type="submit">Anderungen speichern</button>
               </div>
             </form>
           </section>

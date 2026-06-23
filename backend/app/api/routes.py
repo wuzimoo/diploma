@@ -101,7 +101,7 @@ def report_query(db: Session):
 def role_by_code(db: Session, code: str) -> Role:
     role = db.scalar(select(Role).where(Role.code == code))
     if not role:
-        raise HTTPException(status_code=400, detail=f"Unknown role code: {code}")
+        raise HTTPException(status_code=400, detail=f"Unbekannter Rollen-Code: {code}")
     return role
 
 
@@ -127,7 +127,7 @@ def ensure_report_access(db: Session, report: DailyReport, current_user: User) -
         return
     employee = employee_for_user(db, current_user)
     if not employee or report.employee_id != employee.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостатньо прав для перегляду цього звіту")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Keine Berechtigung, diesen Bericht anzuzeigen")
 
 
 def apply_employee_access(db: Session, employee: Employee, access_email: str | None, access_password: str | None, access_role_code: str | None, access_is_active: bool | None) -> None:
@@ -137,17 +137,17 @@ def apply_employee_access(db: Session, employee: Employee, access_email: str | N
     if access_email and employee.user and employee.user.email != access_email:
         conflict = db.scalar(select(User).where(User.email == access_email, User.id != employee.user.id))
         if conflict:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Користувач з таким email уже існує")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ein Benutzer mit dieser E-Mail existiert bereits")
     elif access_email and not employee.user:
         conflict = db.scalar(select(User).where(User.email == access_email))
         if conflict:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Користувач з таким email уже існує")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ein Benutzer mit dieser E-Mail existiert bereits")
 
     if employee.user is None:
         if not access_email:
             return
         if not access_password:
-            raise HTTPException(status_code=400, detail="Для створення доступу потрібен тимчасовий пароль")
+            raise HTTPException(status_code=400, detail="Fuer den Zugang wird ein temporaeres Passwort benoetigt")
         role = role_by_code(db, access_role_code or "worker")
         user = User(
             email=access_email,
@@ -209,12 +209,12 @@ def add_report_event(
 
 def report_status_title(status_value: str) -> str:
     labels = {
-        "draft": "Чернетка",
-        "submitted": "Надіслано бригадиру",
-        "foreman_approved": "Погоджено бригадиром",
-        "admin_approved": "Фінально погоджено",
-        "rejected": "Відхилено",
-        "change_requested": "Потрібні зміни",
+        "draft": "Entwurf",
+        "submitted": "An Polier gesendet",
+        "foreman_approved": "Vom Polier freigegeben",
+        "admin_approved": "Final freigegeben",
+        "rejected": "Abgelehnt",
+        "change_requested": "Nacharbeit angefordert",
     }
     return labels.get(normalize_report_status(status_value), status_value)
 
@@ -253,7 +253,7 @@ def report_activity_items(item_id: int, db: Session) -> list[ReportActivityItemO
             ReportActivityItemOut(
                 id=f"comment-{comment.id}",
                 kind="comment",
-                title="Коментар додано",
+                title="Kommentar hinzugefuegt",
                 body=comment.body,
                 tone="neutral",
                 created_at=comment.created_at,
@@ -516,7 +516,7 @@ def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db), _: U
 def get_employee(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> Employee:
     item = db.scalar(employee_query().where(Employee.id == item_id))
     if not item:
-        raise HTTPException(status_code=404, detail="Employee not found")
+        raise HTTPException(status_code=404, detail="Mitarbeiter nicht gefunden")
     return item
 
 
@@ -626,7 +626,7 @@ def delete_assignment(item_id: int, db: Session = Depends(get_db), _: User = Dep
 def my_active_assignment(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     employee = db.scalar(select(Employee).where(Employee.user_id == current_user.id))
     if not employee:
-        raise HTTPException(status_code=404, detail="Employee profile not found")
+        raise HTTPException(status_code=404, detail="Mitarbeiterprofil nicht gefunden")
     assignment = db.scalar(
         select(ObjectAssignment)
         .options(selectinload(ObjectAssignment.construction_object), selectinload(ObjectAssignment.crew))
@@ -681,8 +681,8 @@ def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db),
         .limit(1)
     )
     if existing_member:
-        crew_name = existing_member.crew.name if existing_member.crew else "іншій бригаді"
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Працівник уже закріплений в активній бригаді: {crew_name}")
+        crew_name = existing_member.crew.name if existing_member.crew else "einem anderen Team"
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Der Mitarbeiter ist bereits einem aktiven Team zugeordnet: {crew_name}")
     item = create_item(db, CrewMember, payload.model_dump())
     return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item.id))
 
@@ -762,7 +762,7 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), cur
     if current_user.role.code == "worker":
         employee = employee_for_user(db, current_user)
         if not employee:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Для цього акаунта не прив'язано працівника")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Diesem Konto ist kein Mitarbeiterprofil zugeordnet")
         data["employee_id"] = employee.id
     data["report_number"] = data["report_number"] or next_report_number(db)
     data["worked_hours"] = data["worked_hours"] or calculate_worked_hours(data["start_time"], data["end_time"], data["break_minutes"])
@@ -780,8 +780,8 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), cur
         db,
         item,
         event_type="report_created",
-        title="Звіт опубліковано",
-        body=f"Створено щоденний звіт {item.report_number}.",
+        title="Bericht veroeffentlicht",
+        body=f"Tagesbericht {item.report_number} wurde erstellt.",
         tone="success",
         actor_id=current_user.id,
     )
@@ -792,7 +792,7 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), cur
 def get_report(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> DailyReport:
     item = db.scalar(report_query(db).where(DailyReport.id == item_id))
     if not item:
-        raise HTTPException(status_code=404, detail="DailyReport not found")
+        raise HTTPException(status_code=404, detail="Tagesbericht nicht gefunden")
     ensure_report_access(db, item, current_user)
     return item
 
@@ -804,7 +804,7 @@ def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depend
     ensure_report_access(db, item, current_user)
     item.status = normalize_report_status(item.status)
     if item.status not in REPORT_EDITABLE_STATUSES:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Звіт уже погоджено і заблоковано для редагування")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Der Bericht ist bereits freigegeben und fuer Bearbeitungen gesperrt")
     if {"start_time", "end_time", "break_minutes"} & data.keys():
         start = data.get("start_time", item.start_time)
         end = data.get("end_time", item.end_time)
@@ -817,8 +817,8 @@ def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depend
         db,
         item,
         event_type="report_updated",
-        title="Звіт оновлено",
-        body="Опис робіт або робочі параметри були змінені.",
+        title="Bericht aktualisiert",
+        body="Leistungsbeschreibung oder Arbeitsparameter wurden geaendert.",
         tone="neutral",
         actor_id=current_user.id,
     )
@@ -833,17 +833,17 @@ def change_report_status(item_id: int, payload: ReportStatusUpdate, db: Session 
 
     if current_user.role.code == "foreman":
         if next_status not in {"foreman_approved", "rejected", "change_requested", "submitted"}:
-            raise HTTPException(status_code=403, detail="Бригадир не може виконати цю дію")
+            raise HTTPException(status_code=403, detail="Der Polier kann diese Aktion nicht ausfuehren")
         if current_status not in {"submitted", "change_requested", "rejected"} and next_status != "submitted":
-            raise HTTPException(status_code=409, detail="Поточний статус не можна змінити на цьому етапі")
+            raise HTTPException(status_code=409, detail="Der aktuelle Status kann in diesem Schritt nicht geaendert werden")
         item.foreman_reviewed_by_user_id = current_user.id
         item.foreman_reviewed_at = datetime.now(UTC)
 
     if current_user.role.code == "admin":
         if next_status not in {"admin_approved", "rejected", "change_requested", "foreman_approved"}:
-            raise HTTPException(status_code=403, detail="Адміністратор не може виконати цю дію")
+            raise HTTPException(status_code=403, detail="Die Administration kann diese Aktion nicht ausfuehren")
         if next_status == "admin_approved" and current_status != "foreman_approved":
-            raise HTTPException(status_code=409, detail="Фінальне погодження доступне лише після бригадира")
+            raise HTTPException(status_code=409, detail="Die finale Freigabe ist erst nach der Polierfreigabe moeglich")
         item.admin_reviewed_by_user_id = current_user.id
         item.admin_reviewed_at = datetime.now(UTC)
 
@@ -851,9 +851,9 @@ def change_report_status(item_id: int, payload: ReportStatusUpdate, db: Session 
     item.rejection_reason = payload.rejection_reason
     db.commit()
     db.refresh(item)
-    body = f"Статус змінено з «{report_status_title(current_status)}» на «{report_status_title(next_status)}»."
+    body = f"Status wurde von \"{report_status_title(current_status)}\" auf \"{report_status_title(next_status)}\" geaendert."
     if payload.rejection_reason:
-        body = f"{body} Причина: {payload.rejection_reason}"
+        body = f"{body} Grund: {payload.rejection_reason}"
     add_report_event(
         db,
         item,
@@ -886,7 +886,7 @@ async def upload_report_media(item_id: int, file: UploadFile = File(...), captio
         daily_report_id=item_id,
         file_name=file.filename or "media.bin",
         file_url="",
-        caption=caption or file.filename or "Медіафайл",
+        caption=caption or file.filename or "Mediendatei",
         content_type=file.content_type,
         size_bytes=len(content),
         file_blob=content,
@@ -900,8 +900,8 @@ async def upload_report_media(item_id: int, file: UploadFile = File(...), captio
         db,
         report,
         event_type="media_uploaded",
-        title="Додано медіафайл",
-        body=f"Файл «{photo.file_name}» прикріплено до звіту.",
+        title="Mediendatei hinzugefuegt",
+        body=f"Datei \"{photo.file_name}\" wurde an den Bericht angehaengt.",
         tone="success",
         actor_id=current_user.id,
     )
@@ -917,7 +917,7 @@ def get_report_photo_content(item_id: int, db: Session = Depends(get_db), curren
         return StreamingResponse(BytesIO(photo.file_blob), media_type=photo.content_type or "application/octet-stream", headers=headers)
     if photo.file_url and photo.file_url.startswith(("http://", "https://")):
         return RedirectResponse(photo.file_url)
-    raise HTTPException(status_code=404, detail="Media content not available")
+    raise HTTPException(status_code=404, detail="Medieninhalt nicht verfuegbar")
 
 
 def _list_report_comments(item_id: int, db: Session) -> list[ReportComment]:
@@ -1022,7 +1022,7 @@ def update_material_request(item_id: int, payload: MaterialRequestUpdate, db: Se
 def get_material_request(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> MaterialRequest:
     item = db.scalar(select(MaterialRequest).options(selectinload(MaterialRequest.construction_object), selectinload(MaterialRequest.requested_by), selectinload(MaterialRequest.items).selectinload(MaterialRequestItem.material)).where(MaterialRequest.id == item_id))
     if not item:
-        raise HTTPException(status_code=404, detail="MaterialRequest not found")
+        raise HTTPException(status_code=404, detail="Materialanfrage nicht gefunden")
     return item
 
 
@@ -1085,7 +1085,7 @@ def update_expense(item_id: int, payload: ExpenseUpdate, db: Session = Depends(g
 def get_expense(item_id: int, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> Expense:
     item = db.scalar(select(Expense).options(selectinload(Expense.construction_object)).where(Expense.id == item_id))
     if not item:
-        raise HTTPException(status_code=404, detail="Expense not found")
+        raise HTTPException(status_code=404, detail="Kostenposition nicht gefunden")
     return item
 
 
@@ -1137,7 +1137,7 @@ def dashboard_analytics(db: Session = Depends(get_db), current_user: User = Depe
         "expense_total": round(expense_total, 2),
         "hours_by_object": hours_by_object,
         "object_progress": object_progress,
-        "expense_hint": "Витрати рахуються як сума записів expenses по об'єктах; години - сума звітів, а для payroll враховуються лише фінально погоджені звіти.",
+        "expense_hint": "Kosten werden als Summe aller Eintraege pro Projekt berechnet. Stunden ergeben sich aus den Berichten; fuer die Lohnabrechnung zaehlen nur final freigegebene Berichte.",
     }
 
 
@@ -1216,20 +1216,20 @@ def payroll_export_csv(start_date: date, end_date: date, db: Session = Depends(g
     buffer = StringIO()
     writer = csv.writer(buffer)
     writer.writerow([
-        "ID працівника",
-        "ПІБ",
-        "Посада",
-        "Ставка EUR/год",
-        "Погоджені години",
-        "Сума до виплати EUR",
-        "Кількість звітів",
-        "Очікують погодження",
-        "Відхилені",
+        "Mitarbeiter-ID",
+        "Name",
+        "Funktion",
+        "Stundensatz EUR",
+        "Freigegebene Stunden",
+        "Auszahlung EUR",
+        "Anzahl Berichte",
+        "Offen zur Freigabe",
+        "Abgelehnt",
     ])
     for row in summary["employees"]:
         writer.writerow([row["employee_id"], row["name"], row["position"], row["hourly_rate"], row["approved_hours"], row["total_payment"], row["reports_count"], row["pending_count"], row["rejected_count"]])
     return Response(
         content="\ufeff" + buffer.getvalue(),
         media_type="text/csv; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="builder-erp-payroll-{start_date.isoformat()}-{end_date.isoformat()}.csv"'},
+        headers={"Content-Disposition": f'attachment; filename="baupilot-lohn-{start_date.isoformat()}-{end_date.isoformat()}.csv"'},
     )

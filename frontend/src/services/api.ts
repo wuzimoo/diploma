@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-export const tokenStorageKey = "romans_erp_token";
+export const tokenStorageKey = "baupilot_token";
 export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 
 export const api = axios.create({

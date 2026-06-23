@@ -15,15 +15,15 @@ function json(route: Route, body: unknown, status = 200) {
 }
 
 const roles = {
-  admin: { id: 1, code: "admin", name: "Керівник компанії" },
-  foreman: { id: 2, code: "foreman", name: "Бригадир / керівник проєкту" },
-  worker: { id: 3, code: "worker", name: "Працівник" },
+  admin: { id: 1, code: "admin", name: "Geschaftsfuhrung" },
+  foreman: { id: 2, code: "foreman", name: "Polier / Bauleitung" },
+  worker: { id: 3, code: "worker", name: "Mitarbeiter" },
 } as const;
 
 const usersByEmail = new Map<string, any>([
-  ["admin@romans-erp.demo", { id: 1, email: "admin@romans-erp.demo", full_name: "Roman Schneider", is_active: true, role: roles.admin }],
-  ["foreman@romans-erp.demo", { id: 2, email: "foreman@romans-erp.demo", full_name: "Oleh Kovalenko", is_active: true, role: roles.foreman }],
-  ["worker@romans-erp.demo", { id: 3, email: "worker@romans-erp.demo", full_name: "Markus Meyer", is_active: true, role: roles.worker }],
+  ["admin@baupilot.demo", { id: 1, email: "admin@baupilot.demo", full_name: "Roman Schneider", is_active: true, role: roles.admin }],
+  ["foreman@baupilot.demo", { id: 2, email: "foreman@baupilot.demo", full_name: "Oleh Kovalenko", is_active: true, role: roles.foreman }],
+  ["worker@baupilot.demo", { id: 3, email: "worker@baupilot.demo", full_name: "Markus Meyer", is_active: true, role: roles.worker }],
 ]);
 
 let nextUserId = 10;
@@ -40,40 +40,40 @@ const employeesBase = [
     user_id: 1,
     first_name: "Roman",
     last_name: "Schneider",
-    position: "Керівник компанії",
+    position: "Geschaftsfuhrung",
     phone: "+49 30 1000001",
     hourly_rate: 0,
     status: "active",
-    user: usersByEmail.get("admin@romans-erp.demo"),
+    user: usersByEmail.get("admin@baupilot.demo"),
   },
   {
     id: 2,
     user_id: 2,
     first_name: "Oleh",
     last_name: "Kovalenko",
-    position: "Бригадир",
+    position: "Polier",
     phone: "+49 30 1000002",
     hourly_rate: 36,
     status: "active",
-    user: usersByEmail.get("foreman@romans-erp.demo"),
+    user: usersByEmail.get("foreman@baupilot.demo"),
   },
   {
     id: 3,
     user_id: 3,
     first_name: "Markus",
     last_name: "Meyer",
-    position: "Електромонтажник",
+    position: "Elektrofachkraft",
     phone: "+49 30 1000003",
     hourly_rate: 28,
     status: "active",
-    user: usersByEmail.get("worker@romans-erp.demo"),
+    user: usersByEmail.get("worker@baupilot.demo"),
   },
   {
     id: 4,
     user_id: null,
     first_name: "Jonas",
     last_name: "Klein",
-    position: "Монтажник",
+    position: "Monteur",
     phone: "+49 331 1000004",
     hourly_rate: 27,
     status: "active",
@@ -84,7 +84,7 @@ const employeesBase = [
     user_id: null,
     first_name: "Leon",
     last_name: "Schulz",
-    position: "Сантехнік",
+    position: "Sanitarinstallateur",
     phone: "+49 30 1000005",
     hourly_rate: 29,
     status: "active",
@@ -95,7 +95,7 @@ const employeesBase = [
     user_id: null,
     first_name: "Sofia",
     last_name: "Weber",
-    position: "Кошторисниця",
+    position: "Kalkulation",
     phone: "+49 30 1000006",
     hourly_rate: 32,
     status: "active",
@@ -104,47 +104,47 @@ const employeesBase = [
 ];
 
 const objects = [
-  { id: 1, name: "Berlin Mitte - Haus A", code: "BER-MIT-A", city: "Berlin", address: "Invalidenstrasse 42, 10115 Berlin", client: "Mitte Bau GmbH", description: "Реконструкція житлового блоку з оновленням інженерних мереж.", work_scope: "Електрика, слабкострумні мережі, підготовка технічних приміщень.", site_manager: "Oleh Kovalenko", priority: "normal", planned_start_date: "2026-02-01", planned_end_date: "2026-07-30", actual_start_date: "2026-02-03", actual_end_date: null, progress_percent: 58, status: "active", start_date: "2026-02-01", end_date: null, budget: 420000 },
-  { id: 2, name: "Berlin Ost - Neubau C", code: "BER-OST-C", city: "Berlin", address: "Frankfurter Allee 211, 10365 Berlin", client: "Ost Projekt AG", description: "Новий офісно-житловий корпус C з активною електромонтажною бригадою.", work_scope: "Кабельні траси, щитові, тимчасове живлення, сантехнічні підключення.", site_manager: "Oleh Kovalenko", priority: "high", planned_start_date: "2026-01-15", planned_end_date: "2026-09-15", actual_start_date: "2026-01-15", actual_end_date: null, progress_percent: 47, status: "active", start_date: "2026-01-15", end_date: null, budget: 680000 },
-  { id: 3, name: "Potsdam - Halle 2", code: "POT-HAL-2", city: "Potsdam", address: "Babelsberger Str. 18, 14473 Potsdam", client: "Potsdam Logistic SE", description: "Логістична зала з монтажем металоконструкцій та основ.", work_scope: "Підготовка основи, металоконструкції, підключення інженерних ліній.", site_manager: "Jonas Klein", priority: "normal", planned_start_date: "2026-03-01", planned_end_date: "2026-08-20", actual_start_date: "2026-03-04", actual_end_date: null, progress_percent: 35, status: "active", start_date: "2026-03-01", end_date: null, budget: 310000 },
-  { id: 4, name: "Brandenburg - Standort West", code: "BRB-WEST", city: "Brandenburg", address: "Magdeburger Landstr. 9, 14770 Brandenburg", client: "WestPark GmbH", description: "Планування промислової зони перед стартом робіт.", work_scope: "Обстеження, кошторис, підготовка графіка робіт.", site_manager: "Roman Schneider", priority: "low", planned_start_date: "2026-06-10", planned_end_date: "2026-11-30", actual_start_date: null, actual_end_date: null, progress_percent: 8, status: "planning", start_date: "2026-04-10", end_date: null, budget: 250000 },
+  { id: 1, name: "Berlin Mitte - Haus A", code: "BER-MIT-A", city: "Berlin", address: "Invalidenstrasse 42, 10115 Berlin", client: "Mitte Bau GmbH", description: "Sanierung eines Wohngebaudes mit modernisierten technischen Netzen.", work_scope: "Elektroinstallation, Schwachstrom und Vorbereitung technischer Raume.", site_manager: "Oleh Kovalenko", priority: "normal", planned_start_date: "2026-02-01", planned_end_date: "2026-07-30", actual_start_date: "2026-02-03", actual_end_date: null, progress_percent: 58, status: "active", start_date: "2026-02-01", end_date: null, budget: 420000 },
+  { id: 2, name: "Berlin Ost - Neubau C", code: "BER-OST-C", city: "Berlin", address: "Frankfurter Allee 211, 10365 Berlin", client: "Ost Projekt AG", description: "Neuer Wohn- und Gewerbebau C mit aktivem Elektroteam.", work_scope: "Kabeltrassen, Verteilungen, Baustrom und Sanitaranschlusse.", site_manager: "Oleh Kovalenko", priority: "high", planned_start_date: "2026-01-15", planned_end_date: "2026-09-15", actual_start_date: "2026-01-15", actual_end_date: null, progress_percent: 47, status: "active", start_date: "2026-01-15", end_date: null, budget: 680000 },
+  { id: 3, name: "Potsdam - Halle 2", code: "POT-HAL-2", city: "Potsdam", address: "Babelsberger Str. 18, 14473 Potsdam", client: "Potsdam Logistic SE", description: "Logistikhalle mit Stahlmontage und vorbereitenden Fundamentarbeiten.", work_scope: "Untergrundvorbereitung, Stahlkonstruktion und technische Anschlusse.", site_manager: "Jonas Klein", priority: "normal", planned_start_date: "2026-03-01", planned_end_date: "2026-08-20", actual_start_date: "2026-03-04", actual_end_date: null, progress_percent: 35, status: "active", start_date: "2026-03-01", end_date: null, budget: 310000 },
+  { id: 4, name: "Brandenburg - Standort West", code: "BRB-WEST", city: "Brandenburg", address: "Magdeburger Landstr. 9, 14770 Brandenburg", client: "WestPark GmbH", description: "Planung eines Industriestandorts vor Baubeginn.", work_scope: "Bestandsaufnahme, Kalkulation und Terminplanung.", site_manager: "Roman Schneider", priority: "low", planned_start_date: "2026-06-10", planned_end_date: "2026-11-30", actual_start_date: null, actual_end_date: null, progress_percent: 8, status: "planning", start_date: "2026-04-10", end_date: null, budget: 250000 },
 ];
 
 const workPlanItems = [
-  { id: 1, construction_object_id: 2, crew_id: 1, title: "Монтаж кабельних трас секція C", description: "Прокласти 180 м кабельних трас на 1-2 поверхах.", planned_volume: 180, completed_volume: 86, unit: "m", status: "in_progress", planned_start: "2026-05-01", planned_end: "2026-05-31", priority: "high" },
-  { id: 2, construction_object_id: 2, crew_id: 1, title: "Щитові та тимчасове живлення", description: "Підготувати тимчасові щити та перевірити навантаження.", planned_volume: 6, completed_volume: 2, unit: "pcs", status: "in_progress", planned_start: "2026-05-10", planned_end: "2026-06-05", priority: "normal" },
-  { id: 3, construction_object_id: 3, crew_id: 2, title: "Основа під металоконструкції", description: "Підготовка та розмітка основи під монтаж.", planned_volume: 420, completed_volume: 135, unit: "m2", status: "in_progress", planned_start: "2026-05-05", planned_end: "2026-06-12", priority: "normal" },
+  { id: 1, construction_object_id: 2, crew_id: 1, title: "Kabeltrassen Montage Abschnitt C", description: "180 m Kabeltrassen im 1. und 2. Obergeschoss verlegen.", planned_volume: 180, completed_volume: 86, unit: "m", status: "in_progress", planned_start: "2026-05-01", planned_end: "2026-05-31", priority: "high" },
+  { id: 2, construction_object_id: 2, crew_id: 1, title: "Verteilungen und Baustrom", description: "Baustromverteiler vorbereiten und Lasten prufen.", planned_volume: 6, completed_volume: 2, unit: "pcs", status: "in_progress", planned_start: "2026-05-10", planned_end: "2026-06-05", priority: "normal" },
+  { id: 3, construction_object_id: 3, crew_id: 2, title: "Grundlage fur Stahlkonstruktion", description: "Untergrund vorbereiten und Montageachsen einmessen.", planned_volume: 420, completed_volume: 135, unit: "m2", status: "in_progress", planned_start: "2026-05-05", planned_end: "2026-06-12", priority: "normal" },
 ];
 
 let crewsBase: any[] = [
   {
     id: 1,
-    name: "Бригада Elektro Ost",
-    specialization: "Електромонтаж",
+    name: "Team Elektro Ost",
+    specialization: "Elektroinstallation",
     foreman_employee_id: 2,
     current_object_id: 2,
     status: "active",
-    notes: "Поточний об'єкт Berlin Ost",
+    notes: "Aktuelles Projekt Berlin Ost",
     current_object: objects[1],
     foreman: employeesBase[1],
     members: [
-      { id: 1, crew_id: 1, employee_id: 2, role_in_crew: "Бригадир", joined_at: "2026-05-01", is_active: true, employee: employeesBase[1] },
-      { id: 2, crew_id: 1, employee_id: 3, role_in_crew: "Електромонтажник", joined_at: "2026-05-01", is_active: true, employee: employeesBase[2] },
-      { id: 3, crew_id: 1, employee_id: 5, role_in_crew: "Сантехнік", joined_at: "2026-05-03", is_active: true, employee: employeesBase[4] },
+      { id: 1, crew_id: 1, employee_id: 2, role_in_crew: "Polier", joined_at: "2026-05-01", is_active: true, employee: employeesBase[1] },
+      { id: 2, crew_id: 1, employee_id: 3, role_in_crew: "Elektrofachkraft", joined_at: "2026-05-01", is_active: true, employee: employeesBase[2] },
+      { id: 3, crew_id: 1, employee_id: 5, role_in_crew: "Sanitarinstallateur", joined_at: "2026-05-03", is_active: true, employee: employeesBase[4] },
     ],
   },
   {
     id: 2,
-    name: "Бригада Montage Potsdam",
-    specialization: "Монтажні роботи",
+    name: "Team Montage Potsdam",
+    specialization: "Montagearbeiten",
     foreman_employee_id: 2,
     current_object_id: 3,
     status: "active",
-    notes: "Поточний об'єкт Potsdam Halle 2",
+    notes: "Aktuelles Projekt Potsdam Halle 2",
     current_object: objects[2],
     foreman: employeesBase[1],
     members: [
-      { id: 4, crew_id: 2, employee_id: 4, role_in_crew: "Монтажник", joined_at: "2026-05-04", is_active: true, employee: employeesBase[3] },
+      { id: 4, crew_id: 2, employee_id: 4, role_in_crew: "Monteur", joined_at: "2026-05-04", is_active: true, employee: employeesBase[3] },
     ],
   },
 ];
@@ -162,15 +162,15 @@ const baseReports = [
     break_minutes: 30,
     worked_hours: 7.75,
     status: "submitted",
-    work_description: "Змонтовано кабельні траси на 1-му поверсі, перевірено постачання матеріалів.",
+    work_description: "Kabeltrassen im 1. Obergeschoss montiert und Materiallieferung gepruft.",
     completed_volume: 12,
-    media_note: "1 файл(и): trasa-1.jpg",
+    media_note: "1 Datei(en): trasa-1.jpg",
     rejection_reason: null,
     foreman_reviewed_by_user_id: null,
     foreman_reviewed_at: null,
     admin_reviewed_by_user_id: null,
     admin_reviewed_at: null,
-    photos: [{ id: 1, daily_report_id: 31, file_name: "trasa-1.jpg", file_url: "https://placehold.co/900x650", caption: "Траса, 1-й поверх" }],
+    photos: [{ id: 1, daily_report_id: 31, file_name: "trasa-1.jpg", file_url: "https://placehold.co/900x650", caption: "Trasse, 1. Obergeschoss" }],
     created_at: "2026-05-29T16:15:00Z",
   },
   {
@@ -185,7 +185,7 @@ const baseReports = [
     break_minutes: 30,
     worked_hours: 8.17,
     status: "foreman_approved",
-    work_description: "Підготовлено основу під монтаж металоконструкцій.",
+    work_description: "Grundlage fur die Stahlmontage vorbereitet.",
     completed_volume: 22,
     media_note: null,
     rejection_reason: null,
@@ -208,7 +208,7 @@ const baseReports = [
     break_minutes: 20,
     worked_hours: 8.5,
     status: "admin_approved",
-    work_description: "Прокладено водопровідні лінії у секції C.",
+    work_description: "Wasserleitungen in Abschnitt C verlegt.",
     completed_volume: 14,
     media_note: null,
     rejection_reason: null,
@@ -231,10 +231,10 @@ const baseReports = [
     break_minutes: 30,
     worked_hours: 8.0,
     status: "change_requested",
-    work_description: "Підключено тимчасове освітлення, промарковано кабельні групи.",
+    work_description: "Baustrombeleuchtung angeschlossen und Kabelgruppen markiert.",
     completed_volume: 8,
     media_note: null,
-    rejection_reason: "Потрібно уточнити фото і виконаний обсяг.",
+    rejection_reason: "Bitte Fotos und Mengenangabe konkretisieren.",
     foreman_reviewed_by_user_id: 2,
     foreman_reviewed_at: "2026-06-02T17:10:00Z",
     admin_reviewed_by_user_id: null,
@@ -246,13 +246,13 @@ const baseReports = [
 
 const commentsBase: Record<number, any[]> = {
   31: [
-    { id: 11, report_id: 31, user_id: 3, body: "Додав фото та оновив кабельні групи.", created_at: "2026-05-29T16:20:00Z", author: usersByEmail.get("worker@romans-erp.demo") },
+    { id: 11, report_id: 31, user_id: 3, body: "Fotos nachgereicht und Kabelgruppen aktualisiert.", created_at: "2026-05-29T16:20:00Z", author: usersByEmail.get("worker@baupilot.demo") },
   ],
   30: [
-    { id: 12, report_id: 30, user_id: 2, body: "Перевірено на об'єкті, передаю адміну.", created_at: "2026-05-28T17:35:00Z", author: usersByEmail.get("foreman@romans-erp.demo") },
+    { id: 12, report_id: 30, user_id: 2, body: "Vor Ort gepruft und an die Verwaltung uebergeben.", created_at: "2026-05-28T17:35:00Z", author: usersByEmail.get("foreman@baupilot.demo") },
   ],
   29: [
-    { id: 13, report_id: 29, user_id: 1, body: "Фінально погоджено для payroll.", created_at: "2026-05-21T09:20:00Z", author: usersByEmail.get("admin@romans-erp.demo") },
+    { id: 13, report_id: 29, user_id: 1, body: "Final fur die Lohnabrechnung freigegeben.", created_at: "2026-05-21T09:20:00Z", author: usersByEmail.get("admin@baupilot.demo") },
   ],
 };
 
@@ -330,7 +330,7 @@ function buildAnalytics(reports: any[], employees: any[]) {
         progress_percent: object.progress_percent,
         status: object.status,
       })),
-    expense_hint: "Витрати рахуються як сума записів expenses по об'єктах; години - сума звітів, а для payroll враховуються лише фінально погоджені звіти.",
+    expense_hint: "Kosten ergeben sich aus den Projektaufwanden; Stunden aus allen Berichten, fur die Lohnabrechnung zahlen nur final freigegebene Berichte.",
   };
 }
 
@@ -372,12 +372,12 @@ function buildPayrollSummary(startDate: string, endDate: string, reports: any[],
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    draft: "Чернетка",
-    submitted: "Надіслано бригадиру",
-    foreman_approved: "Погоджено бригадиром",
-    admin_approved: "Фінально погоджено",
-    rejected: "Відхилено",
-    change_requested: "Потрібні зміни",
+    draft: "Entwurf",
+    submitted: "An den Polier gesendet",
+    foreman_approved: "Vom Polier freigegeben",
+    admin_approved: "Final freigegeben",
+    rejected: "Abgelehnt",
+    change_requested: "Nacharbeit erforderlich",
   };
   return labels[status] || status;
 }
@@ -396,33 +396,33 @@ function buildActivity(reportId: number, reports: any[], comments: Record<number
     {
       id: `event-created-${report.id}`,
       kind: "event",
-      title: "Звіт опубліковано",
-      body: `Звіт ${report.report_number} створено та передано в workflow погодження.`,
+      title: "Bericht erstellt",
+      body: `Bericht ${report.report_number} wurde erstellt und in den Freigabeprozess ubergeben.`,
       tone: "neutral",
       created_at: report.created_at,
-      author: report.employee_id === 3 ? usersByEmail.get("worker@romans-erp.demo") : null,
+      author: report.employee_id === 3 ? usersByEmail.get("worker@baupilot.demo") : null,
     },
   ];
   if (report.foreman_reviewed_at) {
     items.push({
       id: `event-foreman-${report.id}`,
       kind: "event",
-      title: "Погоджено бригадиром",
-      body: "Звіт пройшов первинну перевірку бригадира.",
+      title: "Vom Polier freigegeben",
+      body: "Der Bericht hat die Vorprufung durch den Polier bestanden.",
       tone: "warning",
       created_at: report.foreman_reviewed_at,
-      author: usersByEmail.get("foreman@romans-erp.demo"),
+      author: usersByEmail.get("foreman@baupilot.demo"),
     });
   }
   if (report.admin_reviewed_at) {
     items.push({
       id: `event-admin-${report.id}`,
       kind: "event",
-      title: "Фінально погоджено",
-      body: "Звіт підтверджено адміністратором для нарахувань.",
+      title: "Final freigegeben",
+      body: "Der Bericht wurde fur die Lohnabrechnung final freigegeben.",
       tone: "success",
       created_at: report.admin_reviewed_at,
-      author: usersByEmail.get("admin@romans-erp.demo"),
+      author: usersByEmail.get("admin@baupilot.demo"),
     });
   }
   if (report.rejection_reason) {
@@ -441,8 +441,8 @@ function buildActivity(reportId: number, reports: any[], comments: Record<number
       items.push({
         id: `event-photo-${photo.id}`,
         kind: "event",
-        title: "Додано медіафайл",
-        body: `Файл «${photo.file_name}» прикріплено до звіту.`,
+        title: "Mediadatei hinzugefugt",
+        body: `Datei «${photo.file_name}» wurde dem Bericht hinzugefugt.`,
         tone: "success",
         created_at: report.created_at,
         author: null,
@@ -453,7 +453,7 @@ function buildActivity(reportId: number, reports: any[], comments: Record<number
     items.push({
       id: `comment-${comment.id}`,
       kind: "comment",
-      title: "Коментар додано",
+      title: "Kommentar gespeichert",
       body: comment.body,
       tone: "neutral",
       created_at: comment.created_at,
@@ -464,7 +464,7 @@ function buildActivity(reportId: number, reports: any[], comments: Record<number
 }
 
 export async function installMockApi(page: Page) {
-  let currentEmail = "worker@romans-erp.demo";
+  let currentEmail = "worker@baupilot.demo";
   let employees = clone(employeesBase);
   let crews = clone(crewsBase);
   let reports = clone(baseReports);
@@ -474,12 +474,12 @@ export async function installMockApi(page: Page) {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname.replace(/^\/api/, "");
-    const currentUser = usersByEmail.get(currentEmail) || usersByEmail.get("worker@romans-erp.demo");
+    const currentUser = usersByEmail.get(currentEmail) || usersByEmail.get("worker@baupilot.demo");
     const currentRole = currentUser.role.code as RoleCode;
 
     if (path === "/auth/login" && request.method() === "POST") {
       const body = request.postData() || "";
-      const email = new URLSearchParams(body).get("username") || "worker@romans-erp.demo";
+      const email = new URLSearchParams(body).get("username") || "worker@baupilot.demo";
       const user = usersByEmail.get(email);
       if (!user || user.is_active === false) {
         return json(route, { detail: "Incorrect email or password" }, 401);
@@ -767,7 +767,7 @@ export async function installMockApi(page: Page) {
         daily_report_id: reportId,
         file_name: "uploaded-file.jpg",
         file_url: "https://placehold.co/900x650",
-        caption: "Додано працівником у формі звіту",
+        caption: "Vom Mitarbeiter im Bericht hochgeladen",
         content_type: "image/jpeg",
         size_bytes: 245120,
       };
@@ -857,7 +857,7 @@ export async function installMockApi(page: Page) {
       return route.fulfill({
         status: 200,
         contentType: "text/csv; charset=utf-8",
-        headers: { "Content-Disposition": `attachment; filename="builder-erp-payroll-${startDate}-${endDate}.csv"` },
+        headers: { "Content-Disposition": `attachment; filename="baupilot-lohn-${startDate}-${endDate}.csv"` },
         body: [header, ...rows].join("\n"),
       });
     }

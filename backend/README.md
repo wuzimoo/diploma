@@ -1,8 +1,8 @@
-# Builder ERP Backend
+# BauPilot Backend
 
-FastAPI REST API for construction company operations: users, roles, employees, construction objects, daily reports, report photos, material requests, expenses, analytics and calendar summary.
+FastAPI-Backend fuer die BauPilot-Demo: Benutzer, Rollen, Mitarbeiter, Projekte, Tagesberichte, Medien, Materialanfragen, Kosten, Kalender und Lohnabrechnung.
 
-## Local Setup
+## Lokales Setup
 
 ```bash
 cd backend
@@ -15,19 +15,19 @@ python -m app.db.seed
 uvicorn app.main:app --reload
 ```
 
-API docs: `http://localhost:8000/docs`.
+API-Dokumentation: `http://localhost:8000/docs`
 
 ## Render
 
-The repository root contains `render.yaml`. Render runs the backend from `backend/` with:
+Das Projekt nutzt `render.yaml` im Repo-Root. Render startet den Service mit:
 
 ```bash
 pip install -r requirements.txt
 alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-## Demo Users
+## Demo-Zugaenge
 
-- `admin@romans-erp.demo` / `Admin12345`
-- `foreman@romans-erp.demo` / `Foreman12345`
-- `worker@romans-erp.demo` / `Worker12345`
+- `admin@baupilot.demo` / `Admin12345`
+- `foreman@baupilot.demo` / `Foreman12345`
+- `worker@baupilot.demo` / `Worker12345`

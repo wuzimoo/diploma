@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { StatusBadge } from "../components/StatusBadge";
 import { useAuth } from "../hooks/useAuth";
+import { formatDate, formatHours } from "../lib/format";
 import { api } from "../services/api";
 import { ActiveAssignment, Analytics, DailyReport } from "../types/api";
 
@@ -12,7 +13,7 @@ export function WorkerHomePage() {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null);
-  const today = new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
+  const today = formatDate(new Date());
 
   useEffect(() => {
     Promise.all([
@@ -29,38 +30,38 @@ export function WorkerHomePage() {
   return (
     <>
       <header className="mobile-header">
-        <h1>Доброго дня, {user?.full_name.split(" ")[0]}</h1>
-        <p>Сьогодні: {today}</p>
+        <h1>Guten Tag, {user?.full_name.split(" ")[0]}</h1>
+        <p>Heute: {today}</p>
       </header>
       <main className="mobile-content">
-        <Link className="btn btn-primary btn-block" to="/worker/reports/new">Створити щоденний звіт</Link>
+        <Link className="btn btn-primary btn-block" to="/worker/reports/new">Tagesbericht erfassen</Link>
         <section className="locked-assignment">
-          <span>Поточне закріплення</span>
-          <strong>{activeAssignment?.construction_object?.name || "Об'єкт не призначено"}</strong>
-          <p>{activeAssignment?.crew?.name || "без бригади"} · {activeAssignment?.work_plan_items.length || 0} задач(і) у плані</p>
+          <span>Aktuelle Zuordnung</span>
+          <strong>{activeAssignment?.construction_object?.name || "Kein Projekt zugewiesen"}</strong>
+          <p>{activeAssignment?.crew?.name || "ohne Team"} · {activeAssignment?.work_plan_items.length || 0} Arbeitspakete im Plan</p>
         </section>
         <section className="summary-card">
-          <span className="text-muted">Робочі години в системі</span>
-          <strong className="summary-number">{analytics?.total_hours.toFixed(2) || "0.00"} h</strong>
-          <span className="helper">{analytics?.report_statuses.admin_approved || analytics?.report_statuses.approved || 0} фінально погоджено, {(analytics?.report_statuses.submitted || 0) + (analytics?.report_statuses.foreman_approved || 0)} у перевірці</span>
+          <span className="text-muted">Gebuchte Stunden im System</span>
+          <strong className="summary-number">{formatHours(analytics?.total_hours || 0)}</strong>
+          <span className="helper">{analytics?.report_statuses.admin_approved || analytics?.report_statuses.approved || 0} final freigegeben, {(analytics?.report_statuses.submitted || 0) + (analytics?.report_statuses.foreman_approved || 0)} in Prufung</span>
         </section>
         <section className="stack">
           <div>
-            <h2 className="section-title">Останні звіти</h2>
-            <p className="section-subtitle">Швидкий огляд щоденного звітування</p>
+            <h2 className="section-title">Letzte Berichte</h2>
+            <p className="section-subtitle">Schneller Uberblick uber die letzten Einreichungen</p>
           </div>
-          {reports.length === 0 ? <EmptyState title="Звітів ще немає" text="Після створення вони з'являться тут." /> : (
+          {reports.length === 0 ? <EmptyState title="Noch keine Berichte" text="Neu erfasste Berichte erscheinen hier automatisch." /> : (
             <div className="report-list">
               {reports.map((report) => (
                 <Link className="report-item" key={report.id} to={`/worker/reports/${report.id}`}>
                   <div className="report-item-top">
-                    <h3>{report.report_date}</h3>
+                    <h3>{formatDate(report.report_date)}</h3>
                     <StatusBadge status={report.status} />
                   </div>
                   <p>{report.construction_object.name}</p>
                   <div className="report-meta">
                     <span>{report.start_time.slice(0, 5)} - {report.end_time.slice(0, 5)}</span>
-                    <strong>{report.worked_hours.toFixed(2)} h</strong>
+                    <strong>{formatHours(report.worked_hours)}</strong>
                   </div>
                 </Link>
               ))}

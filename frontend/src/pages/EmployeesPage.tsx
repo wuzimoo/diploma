@@ -8,12 +8,12 @@ import { useToast } from "../hooks/useToast";
 const emptyForm = {
   first_name: "",
   last_name: "",
-  position: "Працівник",
+  position: "Fachkraft",
   phone: "",
   hourly_rate: "28",
   access_email: "",
   access_password: "",
-  access_role_code: "worker"
+  access_role_code: "worker",
 };
 
 function normalizePhone(value: string) {
@@ -21,11 +21,11 @@ function normalizePhone(value: string) {
 }
 
 function employeeError(form: typeof emptyForm, options?: { requirePasswordForAccess?: boolean }) {
-  if (!form.first_name.trim() || !form.last_name.trim()) return "Ім'я та прізвище обов'язкові.";
-  if (!form.position.trim()) return "Вкажіть роль або посаду.";
-  if (form.phone.trim() && !/^[+\d][\d\s()\-]{6,}$/.test(form.phone.trim())) return "Телефон має містити щонайменше 7 символів у коректному форматі.";
-  if (!form.hourly_rate || Number(form.hourly_rate) <= 0) return "Ставка EUR/h повинна бути більшою за 0.";
-  if (options?.requirePasswordForAccess && form.access_email.trim() && !form.access_password.trim()) return "Для створення доступу потрібен тимчасовий пароль.";
+  if (!form.first_name.trim() || !form.last_name.trim()) return "Vorname und Nachname sind erforderlich.";
+  if (!form.position.trim()) return "Bitte Rolle oder Funktion angeben.";
+  if (form.phone.trim() && !/^[+\d][\d\s()\-]{6,}$/.test(form.phone.trim())) return "Die Telefonnummer muss mindestens 7 Zeichen im gultigen Format enthalten.";
+  if (!form.hourly_rate || Number(form.hourly_rate) <= 0) return "Der Stundensatz in EUR muss grosser als 0 sein.";
+  if (options?.requirePasswordForAccess && form.access_email.trim() && !form.access_password.trim()) return "Fur den Zugang ist ein temporares Passwort erforderlich.";
   return "";
 }
 
@@ -46,8 +46,8 @@ export function EmployeesPage() {
       .get<Employee[]>("/employees", {
         params: {
           search: search || undefined,
-          status_filter: statusFilter === "all" ? undefined : statusFilter
-        }
+          status_filter: statusFilter === "all" ? undefined : statusFilter,
+        },
       })
       .then((response) => setEmployees(response.data));
   }
@@ -68,7 +68,7 @@ export function EmployeesPage() {
       hourly_rate: String(employee.hourly_rate),
       access_email: employee.user?.email || "",
       access_password: "",
-      access_role_code: employee.user?.role.code || "worker"
+      access_role_code: employee.user?.role.code || "worker",
     });
   }
 
@@ -88,14 +88,14 @@ export function EmployeesPage() {
         access_email: form.access_email.trim() || null,
         access_password: form.access_password.trim() || null,
         access_role_code: form.access_email.trim() ? form.access_role_code : null,
-        access_is_active: true
+        access_is_active: true,
       });
       setForm(emptyForm);
       setFormError("");
-      pushToast({ tone: "success", title: "Працівника додано", description: "Працівник і доступ до системи створені." });
+      pushToast({ tone: "success", title: "Mitarbeiter angelegt", description: "Mitarbeiterprofil und Zugang wurden erstellt." });
       load();
     } catch (error: any) {
-      setFormError(error?.response?.data?.detail || "Не вдалося створити працівника.");
+      setFormError(error?.response?.data?.detail || "Der Mitarbeiter konnte nicht angelegt werden.");
     }
   }
 
@@ -103,7 +103,7 @@ export function EmployeesPage() {
     event.preventDefault();
     if (!selectedEmployee) return;
     const error = employeeError(editForm, {
-      requirePasswordForAccess: !selectedEmployee.user && Boolean(editForm.access_email.trim())
+      requirePasswordForAccess: !selectedEmployee.user && Boolean(editForm.access_email.trim()),
     });
     setEditError(error);
     if (error) return;
@@ -116,24 +116,24 @@ export function EmployeesPage() {
         hourly_rate: Number(editForm.hourly_rate),
         access_email: editForm.access_email.trim() || null,
         access_password: editForm.access_password.trim() || null,
-        access_role_code: editForm.access_email.trim() ? editForm.access_role_code : null
+        access_role_code: editForm.access_email.trim() ? editForm.access_role_code : null,
       });
       pushToast({
         tone: "success",
-        title: "Дані оновлено",
-        description: selectedEmployee.user ? "Картку працівника збережено." : "Працівника збережено, доступ до системи створено."
+        title: "Daten gespeichert",
+        description: selectedEmployee.user ? "Das Mitarbeiterprofil wurde aktualisiert." : "Profil gespeichert und Zugang angelegt.",
       });
       setSelectedEmployee(null);
       load();
     } catch (error: any) {
-      setEditError(error?.response?.data?.detail || "Не вдалося оновити працівника.");
+      setEditError(error?.response?.data?.detail || "Der Mitarbeiter konnte nicht aktualisiert werden.");
     }
   }
 
   async function updatePassword() {
     if (!selectedEmployee) return;
     if (!editForm.access_password.trim()) {
-      setEditError("Введіть новий тимчасовий пароль.");
+      setEditError("Bitte ein neues temporäres Passwort eingeben.");
       return;
     }
     setSavingPassword(true);
@@ -141,10 +141,10 @@ export function EmployeesPage() {
       await api.patch(`/employees/${selectedEmployee.id}`, { access_password: editForm.access_password.trim() });
       setEditForm((current) => ({ ...current, access_password: "" }));
       setEditError("");
-      pushToast({ tone: "success", title: "Пароль оновлено", description: "Новий тимчасовий пароль збережено." });
+      pushToast({ tone: "success", title: "Passwort aktualisiert", description: "Das neue temporäre Passwort wurde gespeichert." });
       load();
     } catch (error: any) {
-      setEditError(error?.response?.data?.detail || "Не вдалося змінити пароль.");
+      setEditError(error?.response?.data?.detail || "Das Passwort konnte nicht geandert werden.");
     } finally {
       setSavingPassword(false);
     }
@@ -155,8 +155,8 @@ export function EmployeesPage() {
     await api.patch(`/employees/${employee.id}`, { access_is_active: nextValue });
     pushToast({
       tone: nextValue ? "success" : "info",
-      title: nextValue ? "Доступ відновлено" : "Доступ вимкнено",
-      description: nextValue ? "Користувач знову може входити в систему." : "Вхід у систему для цього працівника деактивовано."
+      title: nextValue ? "Zugang aktiviert" : "Zugang deaktiviert",
+      description: nextValue ? "Der Benutzer kann sich wieder anmelden." : "Der Systemzugang wurde deaktiviert.",
     });
     load();
     if (selectedEmployee?.id === employee.id) {
@@ -165,16 +165,16 @@ export function EmployeesPage() {
   }
 
   async function archiveEmployee(employee: Employee) {
-    if (!window.confirm(`Архівувати працівника ${employee.first_name} ${employee.last_name}?`)) return;
+    if (!window.confirm(`Mitarbeiter ${employee.first_name} ${employee.last_name} archivieren?`)) return;
     await api.patch(`/employees/${employee.id}`, { status: "archived", access_is_active: false });
-    pushToast({ tone: "info", title: "Працівника архівовано", description: "Запис залишився в системі, але більше не активний." });
+    pushToast({ tone: "info", title: "Mitarbeiter archiviert", description: "Der Datensatz bleibt erhalten, ist aber nicht mehr aktiv." });
     if (selectedEmployee?.id === employee.id) setSelectedEmployee(null);
     load();
   }
 
   async function restoreEmployee(employee: Employee) {
     await api.patch(`/employees/${employee.id}`, { status: "active", access_is_active: true });
-    pushToast({ tone: "success", title: "Працівника повернуто", description: "Запис знову доступний для бригад і призначень." });
+    pushToast({ tone: "success", title: "Mitarbeiter reaktiviert", description: "Der Datensatz ist wieder fur Teams und Einsatze verfugbar." });
     load();
   }
 
@@ -184,19 +184,19 @@ export function EmployeesPage() {
     <section className="stack">
       <section className="table-card stack">
         <div>
-          <h2 className="section-title">Працівники</h2>
-          <p className="section-subtitle">Команда, ставки, ролі та доступ до системи в одному модулі.</p>
+          <h2 className="section-title">Mitarbeiter</h2>
+          <p className="section-subtitle">Team, Stundensatze, Rollen und Zugange in einem Verwaltungsmodul.</p>
         </div>
         <form className="inline-form access-form" onSubmit={createEmployee}>
-          <label className="field">Ім'я<input value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} required /></label>
-          <label className="field">Прізвище<input value={form.last_name} onChange={(event) => setForm({ ...form, last_name: event.target.value })} required /></label>
-          <label className="field">Роль/посада<input value={form.position} onChange={(event) => setForm({ ...form, position: event.target.value })} required /></label>
-          <label className="field">Телефон<input value={form.phone} onChange={(event) => setForm({ ...form, phone: normalizePhone(event.target.value) })} placeholder="+49 30 1000000" /></label>
+          <label className="field">Vorname<input value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} required /></label>
+          <label className="field">Nachname<input value={form.last_name} onChange={(event) => setForm({ ...form, last_name: event.target.value })} required /></label>
+          <label className="field">Funktion<input value={form.position} onChange={(event) => setForm({ ...form, position: event.target.value })} required /></label>
+          <label className="field">Telefon<input value={form.phone} onChange={(event) => setForm({ ...form, phone: normalizePhone(event.target.value) })} placeholder="+49 30 1000000" /></label>
           <label className="field">EUR/h<input min="1" step="0.5" type="number" value={form.hourly_rate} onChange={(event) => setForm({ ...form, hourly_rate: event.target.value })} required /></label>
           <label className="field">Email<input type="email" value={form.access_email} onChange={(event) => setForm({ ...form, access_email: event.target.value })} placeholder="worker@company.de" /></label>
-          <label className="field">Тимчасовий пароль<input type="password" value={form.access_password} onChange={(event) => setForm({ ...form, access_password: event.target.value })} placeholder="мінімум 8 символів" /></label>
-          <label className="field">Роль доступу<select value={form.access_role_code} onChange={(event) => setForm({ ...form, access_role_code: event.target.value })}><option value="worker">worker</option><option value="foreman">foreman</option><option value="admin">admin</option></select></label>
-          <button className="btn btn-primary" type="submit">Додати працівника</button>
+          <label className="field">Temporäres Passwort<input type="password" value={form.access_password} onChange={(event) => setForm({ ...form, access_password: event.target.value })} placeholder="mindestens 8 Zeichen" /></label>
+          <label className="field">Zugriffsrolle<select value={form.access_role_code} onChange={(event) => setForm({ ...form, access_role_code: event.target.value })}><option value="worker">Mitarbeiter</option><option value="foreman">Polier</option><option value="admin">Admin</option></select></label>
+          <button className="btn btn-primary" type="submit">Mitarbeiter anlegen</button>
         </form>
         {formError ? <div className="form-error">{formError}</div> : null}
       </section>
@@ -204,16 +204,16 @@ export function EmployeesPage() {
       <section className="table-card stack">
         <div className="section-head">
           <div>
-            <h3 className="section-title">Список працівників</h3>
-            <p className="section-subtitle">Активні: {activeCount} · Усього в поточній вибірці: {employees.length}</p>
+            <h3 className="section-title">Mitarbeiterliste</h3>
+            <p className="section-subtitle">Aktiv: {activeCount} · Insgesamt in der aktuellen Ansicht: {employees.length}</p>
           </div>
         </div>
         <div className="filters">
-          <label className="field">Пошук<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Ім'я, прізвище, посада або email" /></label>
-          <label className="field">Статус<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Усі</option><option value="active">Активні</option><option value="archived">Архів</option></select></label>
+          <label className="field">Suche<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Vorname, Nachname, Funktion oder E-Mail" /></label>
+          <label className="field">Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">Alle</option><option value="active">Aktiv</option><option value="archived">Archiv</option></select></label>
           <div className="summary-card compact-summary">
-            <span className="text-muted">Доступ до системи</span>
-            <strong>{employees.filter((employee) => employee.user?.is_active).length} активних акаунтів</strong>
+            <span className="text-muted">Systemzugang</span>
+            <strong>{employees.filter((employee) => employee.user?.is_active).length} aktive Konten</strong>
           </div>
         </div>
         <div className="cards-grid">
@@ -223,23 +223,23 @@ export function EmployeesPage() {
                 <strong>{employee.first_name} {employee.last_name}</strong>
                 <span className="employee-card-role">{employee.position}</span>
               </div>
-              <p>{employee.phone || "Телефон не вказано"}</p>
-              <small>EUR {employee.hourly_rate}/h · {employee.status}</small>
+              <p>{employee.phone || "Keine Telefonnummer hinterlegt"}</p>
+              <small>EUR {employee.hourly_rate}/h · {employee.status === "active" ? "aktiv" : "archiviert"}</small>
               <div className="employee-access-row">
                 <ShieldCheck size={16} />
-                <span>{employee.user ? `${employee.user.email} · ${employee.user.role.code} · ${employee.user.is_active ? "active" : "inactive"}` : "Доступ не створено"}</span>
+                <span>{employee.user ? `${employee.user.email} · ${employee.user.role.name} · ${employee.user.is_active ? "aktiv" : "deaktiviert"}` : "Kein Zugang angelegt"}</span>
               </div>
               <div className="card-actions">
-                <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(employee)}><Pencil size={16} />Редагувати</button>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(employee)}><Pencil size={16} />Bearbeiten</button>
                 {employee.user ? (
                   <button className="btn btn-ghost btn-sm" type="button" onClick={() => toggleAccess(employee, !employee.user?.is_active)}>
-                    <ShieldCheck size={16} />{employee.user.is_active ? "Вимкнути доступ" : "Увімкнути доступ"}
+                    <ShieldCheck size={16} />{employee.user.is_active ? "Zugang sperren" : "Zugang aktivieren"}
                   </button>
                 ) : null}
                 {employee.status === "archived" ? (
-                  <button className="btn btn-ghost btn-sm" type="button" onClick={() => restoreEmployee(employee)}><RotateCcw size={16} />Повернути</button>
+                  <button className="btn btn-ghost btn-sm" type="button" onClick={() => restoreEmployee(employee)}><RotateCcw size={16} />Reaktivieren</button>
                 ) : (
-                  <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveEmployee(employee)}><Archive size={16} />Архівувати</button>
+                  <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveEmployee(employee)}><Archive size={16} />Archivieren</button>
                 )}
               </div>
             </article>
@@ -252,49 +252,49 @@ export function EmployeesPage() {
           <section className="modal-card wide-modal" onClick={(event) => event.stopPropagation()}>
             <div className="section-head">
               <div>
-                <h3 className="section-title">Картка працівника</h3>
-                <p className="section-subtitle">Редагування персональних даних і доступу до системи.</p>
+                <h3 className="section-title">Mitarbeiterkarte</h3>
+                <p className="section-subtitle">Personaldaten und Systemzugang zentral bearbeiten.</p>
               </div>
-              <button className="icon-btn" type="button" aria-label="Закрити" onClick={() => setSelectedEmployee(null)}><X size={18} /></button>
+              <button className="icon-btn" type="button" aria-label="Schliessen" onClick={() => setSelectedEmployee(null)}><X size={18} /></button>
             </div>
             <form className="stack" onSubmit={saveEmployee}>
               <div className="field-row">
-                <label className="field">Ім'я<input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} required /></label>
-                <label className="field">Прізвище<input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} required /></label>
+                <label className="field">Vorname<input value={editForm.first_name} onChange={(event) => setEditForm({ ...editForm, first_name: event.target.value })} required /></label>
+                <label className="field">Nachname<input value={editForm.last_name} onChange={(event) => setEditForm({ ...editForm, last_name: event.target.value })} required /></label>
               </div>
               <div className="field-row">
-                <label className="field">Роль/посада<input value={editForm.position} onChange={(event) => setEditForm({ ...editForm, position: event.target.value })} required /></label>
-                <label className="field">Телефон<input value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: normalizePhone(event.target.value) })} /></label>
+                <label className="field">Funktion<input value={editForm.position} onChange={(event) => setEditForm({ ...editForm, position: event.target.value })} required /></label>
+                <label className="field">Telefon<input value={editForm.phone} onChange={(event) => setEditForm({ ...editForm, phone: normalizePhone(event.target.value) })} /></label>
               </div>
               <label className="field">EUR/h<input min="1" step="0.5" type="number" value={editForm.hourly_rate} onChange={(event) => setEditForm({ ...editForm, hourly_rate: event.target.value })} required /></label>
 
               <section className="access-panel">
                 <div>
-                  <h4 className="section-title">Доступ до системи</h4>
-                  <p className="section-subtitle">Створення або обслуговування акаунта worker / foreman / admin.</p>
+                  <h4 className="section-title">Systemzugang</h4>
+                  <p className="section-subtitle">Konto fur Mitarbeiter, Poliere oder Administration anlegen und pflegen.</p>
                 </div>
                 <div className="field-row access-fields">
                   <label className="field">Email<input type="email" value={editForm.access_email} onChange={(event) => setEditForm({ ...editForm, access_email: event.target.value })} placeholder="worker@company.de" /></label>
-                  <label className="field">Роль доступу<select value={editForm.access_role_code} onChange={(event) => setEditForm({ ...editForm, access_role_code: event.target.value })}><option value="worker">worker</option><option value="foreman">foreman</option><option value="admin">admin</option></select></label>
+                  <label className="field">Zugriffsrolle<select value={editForm.access_role_code} onChange={(event) => setEditForm({ ...editForm, access_role_code: event.target.value })}><option value="worker">Mitarbeiter</option><option value="foreman">Polier</option><option value="admin">Admin</option></select></label>
                 </div>
                 <div className="field-row access-fields">
                   <label className="field">
-                    {selectedEmployee.user ? "Новий пароль" : "Тимчасовий пароль"}
+                    {selectedEmployee.user ? "Neues Passwort" : "Temporäres Passwort"}
                     <input
                       type="password"
                       value={editForm.access_password}
                       onChange={(event) => setEditForm({ ...editForm, access_password: event.target.value })}
-                      placeholder={selectedEmployee.user ? "залиште порожнім без зміни" : "вкажіть пароль для створення акаунта"}
+                      placeholder={selectedEmployee.user ? "leer lassen, wenn unverandert" : "Passwort fur die Kontoanlage eingeben"}
                     />
                   </label>
                   <div className="access-actions">
                     <span className="text-muted">
                       {selectedEmployee.user
-                        ? `Статус доступу: ${selectedEmployee.user.is_active ? "active" : "inactive"}`
-                        : "Акаунт ще не створено. Вкажіть email і тимчасовий пароль, потім збережіть зміни."}
+                        ? `Zugangsstatus: ${selectedEmployee.user.is_active ? "aktiv" : "deaktiviert"}`
+                        : "Noch kein Konto vorhanden. E-Mail und temporäres Passwort eintragen und danach speichern."}
                     </span>
                     {selectedEmployee.user ? (
-                      <button className="btn btn-secondary btn-sm" disabled={savingPassword} type="button" onClick={updatePassword}><KeyRound size={16} />Змінити пароль</button>
+                      <button className="btn btn-secondary btn-sm" disabled={savingPassword} type="button" onClick={updatePassword}><KeyRound size={16} />Passwort aktualisieren</button>
                     ) : null}
                   </div>
                 </div>
@@ -302,8 +302,8 @@ export function EmployeesPage() {
 
               {editError ? <div className="form-error">{editError}</div> : null}
               <div className="modal-actions">
-                <button className="btn btn-secondary" type="button" onClick={() => setSelectedEmployee(null)}>Скасувати</button>
-                <button className="btn btn-primary" type="submit">Зберегти зміни</button>
+                <button className="btn btn-secondary" type="button" onClick={() => setSelectedEmployee(null)}>Abbrechen</button>
+                <button className="btn btn-primary" type="submit">Anderungen speichern</button>
               </div>
             </form>
           </section>

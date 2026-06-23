@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useToast } from "../hooks/useToast";
+import { formatHours } from "../lib/format";
 import { api } from "../services/api";
 import { ActiveAssignment } from "../types/api";
 
@@ -38,27 +39,27 @@ export function CreateReportPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!form.work_description.trim() || form.work_description.trim().length < 5) {
-      setFormError("Додайте змістовний опис робіт щонайменше з 5 символів.");
+      setFormError("Bitte erfassen Sie eine aussagekraftige Arbeitsbeschreibung mit mindestens 5 Zeichen.");
       return;
     }
     if (!form.completed_volume) {
-      setFormError("Вкажіть виконаний обсяг.");
+      setFormError("Bitte geben Sie die ausgefuhrte Menge an.");
       return;
     }
     if (Number(form.completed_volume) <= 0) {
-      setFormError("Виконаний обсяг має бути більшим за 0.");
+      setFormError("Die ausgefuhrte Menge muss grosser als 0 sein.");
       return;
     }
     if (form.end_time <= form.start_time) {
-      setFormError("Час завершення має бути пізнішим за час початку.");
+      setFormError("Die Endzeit muss nach der Startzeit liegen.");
       return;
     }
     if (form.break_minutes < 0) {
-      setFormError("Перерва не може бути від'ємною.");
+      setFormError("Die Pause darf nicht negativ sein.");
       return;
     }
     if (workedHours <= 0) {
-      setFormError("Робочий час повинен бути більшим за 0 годин.");
+      setFormError("Die Arbeitszeit muss grosser als 0 Stunden sein.");
       return;
     }
     setFormError("");
@@ -68,52 +69,52 @@ export function CreateReportPage() {
       employee_id: activeAssignment?.employee.id,
       work_plan_item_id: form.work_plan_item_id ? Number(form.work_plan_item_id) : null,
       completed_volume: form.completed_volume ? Number(form.completed_volume) : null,
-      media_note: mediaFiles.length ? `${mediaFiles.length} файл(и): ${mediaFiles.map((file) => file.name).join(", ")}` : null,
+      media_note: mediaFiles.length ? `${mediaFiles.length} Datei(en): ${mediaFiles.map((file) => file.name).join(", ")}` : null,
       worked_hours: workedHours,
       status: "submitted"
     });
     await Promise.all(mediaFiles.map((file) => {
       const payload = new FormData();
       payload.append("file", file);
-      payload.append("caption", "Додано працівником у формі звіту");
+      payload.append("caption", "Vom Mitarbeiter im Bericht hochgeladen");
       return api.post(`/reports/${response.data.id}/media`, payload, {
         headers: { "Content-Type": "multipart/form-data" }
       });
     }));
-    pushToast({ tone: "success", title: "Звіт створено", description: "Щоденний звіт відправлено на перевірку бригадиру." });
+    pushToast({ tone: "success", title: "Bericht gesendet", description: "Der Tagesbericht wurde an den Polier zur Prufung ubergeben." });
     navigate(`/worker/reports/${response.data.id}`);
   }
 
   return (
     <>
       <header className="mobile-header">
-        <button className="back-link button-reset" onClick={() => navigate(-1)} type="button">Назад до панелі</button>
-        <h1>Заповнення щоденного звіту</h1>
-        <p>Перед відправкою перевірте, що всі поля заповнені.</p>
+        <button className="back-link button-reset" onClick={() => navigate(-1)} type="button">Zuruck zur Ubersicht</button>
+        <h1>Tagesbericht erfassen</h1>
+        <p>Bitte prufen Sie vor dem Absenden Zeiten, Menge und Beschreibung.</p>
       </header>
       <main className="mobile-content">
         <form className="form-grid" onSubmit={submit}>
           <section className="locked-assignment">
-            <span>Закріплений поточний об'єкт</span>
-            <strong>{activeAssignment?.construction_object?.name || "Об'єкт не призначено"}</strong>
-            <p>{activeAssignment?.employee.first_name} {activeAssignment?.employee.last_name} · {activeAssignment?.crew?.name || "без бригади"}</p>
+            <span>Zugewiesenes Projekt</span>
+            <strong>{activeAssignment?.construction_object?.name || "Kein Projekt zugewiesen"}</strong>
+            <p>{activeAssignment?.employee.first_name} {activeAssignment?.employee.last_name} · {activeAssignment?.crew?.name || "ohne Team"}</p>
           </section>
-          <label className="field">Дата<input type="date" value={form.report_date} onChange={(e) => setForm({ ...form, report_date: e.target.value })} /></label>
-          <label className="field">План робіт<select value={form.work_plan_item_id} onChange={(e) => setForm({ ...form, work_plan_item_id: e.target.value })}>
+          <label className="field">Datum<input type="date" value={form.report_date} onChange={(e) => setForm({ ...form, report_date: e.target.value })} /></label>
+          <label className="field">Arbeitspaket<select value={form.work_plan_item_id} onChange={(e) => setForm({ ...form, work_plan_item_id: e.target.value })}>
             {activeAssignment?.work_plan_items.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.completed_volume}/{item.planned_volume} {item.unit}</option>)}
           </select></label>
           <div className="field-row">
-            <label className="field">Початок<input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
-            <label className="field">Завершення<input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
+            <label className="field">Start<input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
+            <label className="field">Ende<input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
           </div>
-          <label className="field">Перерва, хв<input type="number" value={form.break_minutes} onChange={(e) => setForm({ ...form, break_minutes: Number(e.target.value) })} /></label>
-          <div className="hours-row"><span>Розрахований робочий час</span><strong>{workedHours.toFixed(2)} h</strong></div>
-          <label className="field">Виконаний обсяг<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="Напр.: 12.5" /></label>
-          <label className="field">Опис робіт<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="Напр.: змонтовано кабельні траси, підготовлено головний щит" /></label>
-          <label className="field">Фото / медіа<input type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Файли завантажуються разом зі звітом і доступні для перегляду в картці звіту.</span></label>
+          <label className="field">Pause, Min.<input type="number" value={form.break_minutes} onChange={(e) => setForm({ ...form, break_minutes: Number(e.target.value) })} /></label>
+          <div className="hours-row"><span>Berechnete Arbeitszeit</span><strong>{formatHours(workedHours)}</strong></div>
+          <label className="field">Ausgefuhrte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="z. B. 12,5" /></label>
+          <label className="field">Arbeitsbeschreibung<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="z. B. Kabeltrassen montiert, Hauptverteilung vorbereitet" /></label>
+          <label className="field">Fotos / Medien<input type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Dateien werden gemeinsam mit dem Bericht hochgeladen und bleiben in der Berichtskarte sichtbar.</span></label>
           {formError ? <div className="form-error">{formError}</div> : null}
           {mediaFiles.length > 0 && <div className="file-list">{mediaFiles.map((file) => <span key={file.name}>{file.name}</span>)}</div>}
-          <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Надіслати звіт</button>
+          <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Bericht einreichen</button>
         </form>
       </main>
     </>

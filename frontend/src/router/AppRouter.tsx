@@ -22,7 +22,7 @@ import { RoleCode } from "../types/api";
 function Protected({ children, allowedRoles }: { children: JSX.Element; allowedRoles?: RoleCode[] }) {
   const { user, loading } = useAuth();
   if (loading) {
-    return <div className="loading-screen">Завантаження Kairos Builder...</div>;
+    return <div className="loading-screen">BauPilot wird geladen...</div>;
   }
   if (!user) {
     return <Navigate to="/login" replace />;

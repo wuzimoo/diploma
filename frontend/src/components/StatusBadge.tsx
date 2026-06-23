@@ -1,20 +1,20 @@
 const labels: Record<string, string> = {
-  open: "Подано",
-  review: "Подано",
-  approved: "Фінально погоджено",
-  draft: "Чернетка",
-  submitted: "У бригадира",
-  foreman_approved: "У адміна",
-  admin_approved: "Фінально погоджено",
-  rejected: "Відхилено",
-  change_requested: "Потрібні зміни",
-  active: "Активно",
-  planning: "Планування",
-  archived: "Архів",
-  done: "Завершено",
-  blocked: "Блоковано",
-  planned: "Заплановано",
-  in_progress: "У роботі"
+  open: "Eingereicht",
+  review: "In Prufung",
+  approved: "Final freigegeben",
+  draft: "Entwurf",
+  submitted: "Beim Polier",
+  foreman_approved: "Bei der Verwaltung",
+  admin_approved: "Final freigegeben",
+  rejected: "Abgelehnt",
+  change_requested: "Nacharbeit",
+  active: "Aktiv",
+  planning: "In Planung",
+  archived: "Archiv",
+  done: "Abgeschlossen",
+  blocked: "Blockiert",
+  planned: "Geplant",
+  in_progress: "In Arbeit"
 };
 
 export function statusLabel(status: string) {

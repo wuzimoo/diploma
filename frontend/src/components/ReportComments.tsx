@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { CheckCircle2, CircleAlert, Clock3, MessageSquareText } from "lucide-react";
 
 import { useToast } from "../hooks/useToast";
+import { formatDateTime } from "../lib/format";
 import { api } from "../services/api";
 import { ReportActivityItem } from "../types/api";
 
@@ -45,10 +46,10 @@ export function ReportComments({ reportId }: { reportId: number }) {
     } catch (requestError: any) {
       setActivity([]);
       if (requestError?.response?.status === 404) {
-        setLoadError("Модуль активності ще не доступний на поточному сервері. Оновіть backend deployment.");
+        setLoadError("Das Aktivitatsmodul ist auf diesem Server noch nicht verfugbar. Bitte das Backend-Deployment aktualisieren.");
         return;
       }
-      setLoadError(requestError?.response?.data?.detail || "Не вдалося завантажити історію звіту.");
+      setLoadError(requestError?.response?.data?.detail || "Die Berichtshistorie konnte nicht geladen werden.");
     }
   }
 
@@ -63,7 +64,7 @@ export function ReportComments({ reportId }: { reportId: number }) {
       return;
     }
     if (!body.trim()) {
-      setError("Порожній коментар не можна відправити.");
+      setError("Leere Kommentare konnen nicht gespeichert werden.");
       return;
     }
     setSaving(true);
@@ -71,13 +72,13 @@ export function ReportComments({ reportId }: { reportId: number }) {
     try {
       await requestWithFallback("post", "comments", { body: body.trim() });
       setBody("");
-      pushToast({ tone: "success", title: "Коментар додано", description: "Нова примітка збережена у звіті." });
+      pushToast({ tone: "success", title: "Kommentar gespeichert", description: "Die neue Notiz wurde dem Bericht hinzugefugt." });
       await load();
     } catch (requestError: any) {
       if (requestError?.response?.status === 404) {
-        setError("Коментарі поки не підтримуються на поточному backend deployment.");
+        setError("Kommentare werden vom aktuellen Backend-Deployment noch nicht unterstutzt.");
       } else {
-        setError(requestError?.response?.data?.detail || "Не вдалося додати коментар.");
+        setError(requestError?.response?.data?.detail || "Der Kommentar konnte nicht gespeichert werden.");
       }
     } finally {
       setSaving(false);
@@ -87,23 +88,23 @@ export function ReportComments({ reportId }: { reportId: number }) {
   return (
     <section className="table-card stack">
       <div>
-        <h3 className="section-title">Коментарі та історія</h3>
-        <p className="section-subtitle">Події по звіту: створення, зміна статусів, завантаження файлів та коментарі учасників.</p>
+        <h3 className="section-title">Kommentare und Historie</h3>
+        <p className="section-subtitle">Ereignisse zum Bericht: Erstellung, Statuswechsel, Uploads und Teamkommentare.</p>
         {loadError ? <div className="form-error comments-warning">{loadError}</div> : null}
       </div>
       <form className="stack" onSubmit={submit}>
         <label className="field">
-          Додати коментар
+          Kommentar erfassen
           <textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder="Наприклад: додайте фото щитової або уточніть виконаний обсяг."
+            placeholder="z. B. bitte Fotos der Verteilung nachreichen oder Mengenangabe konkretisieren"
             disabled={Boolean(loadError) || saving}
           />
         </label>
         {error ? <div className="form-error">{error}</div> : null}
         <button className="btn btn-primary" disabled={saving || Boolean(loadError)} type="submit">
-          Додати коментар
+          Kommentar speichern
         </button>
       </form>
       <div className="activity-list">
@@ -119,7 +120,7 @@ export function ReportComments({ reportId }: { reportId: number }) {
                     </span>
                     <strong>{item.title}</strong>
                   </div>
-                  <span className="text-muted">{new Date(item.created_at).toLocaleString("uk-UA")}</span>
+                  <span className="text-muted">{formatDateTime(item.created_at)}</span>
                 </div>
                 {item.author ? <div className="comment-meta">{item.author.full_name} · {item.author.role.name}</div> : null}
                 {item.body ? <p>{item.body}</p> : null}
@@ -128,8 +129,8 @@ export function ReportComments({ reportId }: { reportId: number }) {
           })
         ) : (
           <div className="empty-state">
-            <strong>{loadError ? "Історія недоступна" : "Подій ще немає"}</strong>
-            <span>{loadError ? "Після оновлення backend deployment цей блок запрацює автоматично." : "Перший коментар або зміна статусу з'явиться тут."}</span>
+            <strong>{loadError ? "Historie nicht verfugbar" : "Noch keine Ereignisse"}</strong>
+            <span>{loadError ? "Nach dem Backend-Update wird dieser Bereich automatisch aktiv." : "Der erste Kommentar oder Statuswechsel erscheint hier."}</span>
           </div>
         )}
       </div>

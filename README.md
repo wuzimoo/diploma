@@ -1,38 +1,37 @@
-# Builder ERP
+# BauPilot
 
-Інформаційна система управління діяльністю будівельної компанії. MVP включає мобільний інтерфейс для працівника/виконроба та веб-інтерфейс для бригадира, керівника компанії й адміністратора.
+BauPilot ist eine deutschsprachige Demo fuer Bauunternehmen. Das Monorepo enthaelt ein FastAPI-Backend, ein React/Vite-Frontend und ein Render-Blueprint fuer API plus PostgreSQL.
 
 ## Stack
 
-- Backend: Python, FastAPI, SQLAlchemy, Alembic, Pydantic, JWT
-- Database: PostgreSQL
-- Frontend: React, Vite, React Router, Axios, TypeScript
-- Deploy: Render для backend, Vercel для frontend
+- Backend: FastAPI, SQLAlchemy, Alembic, Pydantic, JWT
+- Frontend: React, Vite, TypeScript, React Router, Axios
+- Datenbank: PostgreSQL
+- Deployment: Render fuer Backend und Datenbank, Vercel fuer das Frontend
 
-## Architecture
-
-Monorepo:
+## Struktur
 
 ```text
-backend/   FastAPI REST API, SQLAlchemy models, Alembic migrations, seed data
-frontend/  React/Vite UI for worker mobile flow and foreman/admin web flow
-docs/      architecture, modules, API, database and deployment documentation
-render.yaml Render Blueprint for API + PostgreSQL
+backend/   REST API, Modelle, Migrationen, Seed-Daten
+frontend/  Web- und Mobile-optimiertes Demo-Frontend
+render.yaml Render Blueprint fuer API + PostgreSQL
 ```
 
-## Local PostgreSQL
+## Lokaler Start
+
+### PostgreSQL
 
 ```bash
-createdb romans_erp
+createdb baupilot
 ```
 
-Or with Docker:
+Oder mit Docker:
 
 ```bash
-docker run --name romans-erp-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=romans_erp -p 5432:5432 -d postgres:16
+docker run --name baupilot-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=baupilot -p 5432:5432 -d postgres:16
 ```
 
-## Backend
+### Backend
 
 ```bash
 cd backend
@@ -45,9 +44,9 @@ python -m app.db.seed
 uvicorn app.main:app --reload
 ```
 
-API docs: `http://localhost:8000/docs`.
+API-Dokumentation: `http://localhost:8000/docs`
 
-## Frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -56,94 +55,57 @@ cp .env.example .env
 npm run dev
 ```
 
-Frontend URL: `http://localhost:5173`.
+Frontend-URL: `http://localhost:5173`
 
-## Tests And CI
+## Demo-Zugaenge
 
-Frontend e2e tests cover:
+- Admin: `admin@baupilot.demo` / `Admin12345`
+- Polier: `foreman@baupilot.demo` / `Foreman12345`
+- Mitarbeiter: `worker@baupilot.demo` / `Worker12345`
 
-- worker login, calendar month switching, report creation and locked final reports;
-- foreman approval stage and report comments;
-- admin final approval, employee access management and payroll CSV export;
-- visual smoke for dashboard object cards and object progress circle.
+## Freigabe-Workflow
+
+- `draft`: Entwurf oder lokal gespeicherter Bericht
+- `submitted`: vom Mitarbeiter eingereicht, wartet auf Polierfreigabe
+- `foreman_approved`: vom Polier freigegeben, wartet auf finale Freigabe
+- `admin_approved`: final freigegeben und fuer Lohnabrechnung beruecksichtigt
+- `change_requested`: Nacharbeit angefordert
+- `rejected`: abgelehnt
+
+## Tests
 
 ```bash
 cd frontend
 npm run test:e2e
 ```
 
-CI is configured in `.github/workflows/ci.yml`:
-
-- backend job installs dependencies, runs Alembic migrations on a smoke database, seeds demo data and imports the FastAPI app;
-- frontend job runs `npm ci`, `npm run build`, installs Playwright Chromium and uploads HTML reports/traces on failures.
-
-## Demo Logins
-
-- Admin: `admin@romans-erp.demo` / `Admin12345`
-- Foreman: `foreman@romans-erp.demo` / `Foreman12345`
-- Worker: `worker@romans-erp.demo` / `Worker12345`
-
-## Approval Flow
-
-Daily reports now use a two-step approval flow:
-
-- `draft` - чернетка або локально збережений звіт;
-- `submitted` - подано працівником, очікує перевірки бригадиром;
-- `foreman_approved` - погоджено бригадиром, очікує фінального підтвердження;
-- `admin_approved` - фінально погоджено, звіт заблоковано для редагування та враховується в payroll;
-- `change_requested` - потрібні уточнення або доопрацювання;
-- `rejected` - відхилено.
-
-Коментарі до звітів доступні на сторінках деталізації та погодження для worker, foreman і admin.
-
-## Payroll / Export
-
-В admin-контурі є сторінка `Оплати`:
-
-- календарний місяць;
-- payroll period `21-20`;
-- custom date range;
-- підсумок по працівниках;
-- перегляд фінально погоджених звітів у межах періоду;
-- CSV export для бухгалтера.
+Die Playwright-Suite deckt Login, Berichtserstellung, Freigaben, Kommentare, Mitarbeiterverwaltung und CSV-Export ab.
 
 ## Deployment
 
-Render hosts the backend API and PostgreSQL. The repository includes `render.yaml` for repeatable Blueprint deploys.
+### Render
 
 - Root Directory: `backend`
-- Runtime: Python 3
-- Region: Frankfurt
-- Build command: `pip install -r requirements.txt`
-- Start command: `alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Health check path: `/api/health`
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `alembic upgrade head && python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Health Check: `/api/health`
 
-Add a Render PostgreSQL database in the same region and use its Internal Database URL as `DATABASE_URL`.
-
-Required Render backend variables:
+Wichtige Variablen:
 
 ```env
 DATABASE_URL=<Render Internal Database URL>
 SECRET_KEY=<secure-random-secret>
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
-CORS_ORIGINS=https://diploma-ochre.vercel.app,https://diploma-mu6e1osvh-daniils-projects-5bff5a67.vercel.app,http://localhost:5173
+CORS_ORIGINS=http://localhost:5173
 ENVIRONMENT=production
 PYTHON_VERSION=3.11.9
 ```
 
-On Render Free, `preDeployCommand` is not available. Migrations and the idempotent demo seed are therefore included directly in `startCommand`.
+Hinweis: `backend/app/core/config.py` erlaubt zusaetzlich Preview-Origin-URLs ueber `https://.*.vercel.app`.
 
-Vercel deploys `frontend` with:
+### Vercel
 
-- Build command: `npm run build`
-- Output directory: `dist`
-- Env var: `VITE_API_URL=https://diploma-njc4.onrender.com/api`
-
-After Render deploys the backend, update Vercel `VITE_API_URL` and redeploy the frontend.
-
-## Links
-
-- GitHub: https://github.com/wuzimoo/diploma.git
-- Vercel: https://diploma-mu6e1osvh-daniils-projects-5bff5a67.vercel.app
-- Vercel alias: https://diploma-ochre.vercel.app
-- Render backend: https://diploma-njc4.onrender.com
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Env Var: `VITE_API_URL=<Render Backend URL>/api`

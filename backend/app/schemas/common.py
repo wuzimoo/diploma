@@ -173,7 +173,7 @@ class AssignmentBase(BaseModel):
     employee_id: int
     construction_object_id: int
     crew_id: int | None = None
-    role_on_object: str = "Працівник"
+    role_on_object: str = "Mitarbeiter"
     start_date: date
     end_date: date | None = None
     is_active: bool = True
@@ -206,7 +206,7 @@ class AssignmentOut(ORMModel):
 
 class CrewBase(BaseModel):
     name: str
-    specialization: str = "Загальнобудівельні роботи"
+    specialization: str = "Allgemeine Bauarbeiten"
     foreman_employee_id: int | None = None
     current_object_id: int | None = None
     status: str = "active"
@@ -229,7 +229,7 @@ class CrewUpdate(BaseModel):
 class CrewMemberBase(BaseModel):
     crew_id: int
     employee_id: int
-    role_in_crew: str = "Працівник"
+    role_in_crew: str = "Mitarbeiter"
     joined_at: date
     is_active: bool = True
 

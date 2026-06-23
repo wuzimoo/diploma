@@ -7,7 +7,7 @@ export function MorePage() {
   return (
     <>
       <header className="mobile-header">
-        <h1>Додатково</h1>
+        <h1>Mehr</h1>
         <p>{user?.email}</p>
       </header>
       <main className="mobile-content more-page-content">
@@ -21,7 +21,7 @@ export function MorePage() {
               <span className="text-muted">{user?.role.name}</span>
             </div>
           </div>
-          <button className="btn btn-secondary btn-block" onClick={logout} type="button"><LogOut size={18} />Вийти</button>
+          <button className="btn btn-secondary btn-block" onClick={logout} type="button"><LogOut size={18} />Abmelden</button>
         </section>
       </main>
     </>
