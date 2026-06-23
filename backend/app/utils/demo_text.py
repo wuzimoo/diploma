@@ -71,6 +71,14 @@ STATUS_LABELS = {
     "change_requested": "Nacharbeit angefordert",
 }
 
+STATUS_BODY_LABELS = {
+    "An Polier gesendet": "an den Polier gesendet",
+    "Vom Polier freigegeben": "vom Polier freigegeben",
+    "Final freigegeben": "final freigegeben",
+    "Abgelehnt": "abgelehnt",
+    "Nacharbeit angefordert": "zur Nacharbeit zurückgegeben",
+}
+
 
 def contains_cyrillic(value: str | None) -> bool:
     return bool(value and CYRILLIC_RE.search(value))
@@ -228,7 +236,7 @@ def normalize_report_event_body(
     if event_type == "status_changed":
         status_label = report_status_label(status_value) if status_value else normalize_report_event_title(title, event_type)
         if status_label:
-            return f"Aktueller Berichtsstatus: {status_label.lower()}."
+            return f"Aktueller Berichtsstatus: {STATUS_BODY_LABELS.get(status_label, status_label.lower())}."
     if contains_cyrillic(cleaned):
         return "Ereignistext wurde für die Demo vereinheitlicht."
     return cleaned

@@ -489,6 +489,20 @@ def enrich_demo_data(db) -> None:
             actor = foreman_user if report.status == "foreman_approved" else admin_user if report.status == "admin_approved" else report.employee.user or worker_user
             db.add(ReportEvent(report=report, actor=actor, event_type="status_changed", title=status_title, body=f"Aktueller Berichtsstatus: {status_title.lower()}.", tone="success" if report.status == "admin_approved" else "warning" if report.status in {"submitted", "foreman_approved"} else "danger"))
 
+    _normalize_existing_demo_records(
+        db,
+        berlin_mitte=berlin_mitte,
+        berlin_ost=berlin_ost,
+        potsdam=potsdam,
+        foreman=foreman,
+        worker=worker,
+        jonas=jonas,
+        leon=leon,
+        elektro=elektro,
+        montage=montage,
+        berlin_team=berlin_team,
+    )
+
     db.commit()
 
 
