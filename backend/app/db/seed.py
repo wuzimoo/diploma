@@ -246,6 +246,35 @@ def _normalize_existing_demo_records(
     for item in db.scalars(select(WorkPlanItem)).all():
         item.title, item.description, item.unit = normalize_work_plan_fields(item.title, item.description, item.unit)
 
+    grouped_plan_items: dict[tuple[int, str], list[WorkPlanItem]] = {}
+    for item in db.scalars(select(WorkPlanItem).order_by(WorkPlanItem.id)).all():
+        grouped_plan_items.setdefault((item.construction_object_id, item.title), []).append(item)
+    for duplicates in grouped_plan_items.values():
+        if len(duplicates) < 2:
+            continue
+        ordered = sorted(
+            duplicates,
+            key=lambda current: (
+                len(current.daily_reports),
+                current.completed_volume or 0,
+                -(current.id),
+            ),
+            reverse=True,
+        )
+        keep = ordered[0]
+        for duplicate in ordered[1:]:
+            for report in duplicate.daily_reports:
+                report.work_plan_item = keep
+                report.work_plan_item_id = keep.id
+            keep.planned_volume = max(keep.planned_volume or 0, duplicate.planned_volume or 0)
+            keep.completed_volume = max(keep.completed_volume or 0, duplicate.completed_volume or 0)
+            keep.priority = keep.priority or duplicate.priority
+            if not keep.description and duplicate.description:
+                keep.description = duplicate.description
+            if not keep.unit and duplicate.unit:
+                keep.unit = duplicate.unit
+            db.delete(duplicate)
+
     for report in db.scalars(select(DailyReport)).all():
         fallback = f"{report.work_plan_item.title} dokumentiert und zur Prüfung eingereicht." if report.work_plan_item else None
         report.work_description = normalize_report_description(report.work_description, fallback=fallback)
