@@ -1,6 +1,6 @@
 from datetime import date, time
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.core.security import get_password_hash
 from app.db.session import SessionLocal
@@ -24,17 +24,92 @@ from app.models import (
 )
 
 
+def _find_user_by_emails(db, *emails: str) -> User | None:
+    existing = [email for email in emails if email]
+    if not existing:
+        return None
+    return db.scalar(select(User).where(User.email.in_(existing)).limit(1))
+
+
+def _find_crew_by_names(db, *names: str) -> Crew | None:
+    existing = [name for name in names if name]
+    if not existing:
+        return None
+    return db.scalar(select(Crew).where(Crew.name.in_(existing)).limit(1))
+
+
+def sync_demo_access(db) -> tuple[User | None, User | None, User | None]:
+    roles = {role.code: role for role in db.scalars(select(Role)).all()}
+    role_labels = {
+        "admin": ("Geschaeftsleitung", "Voller Zugriff auf das System"),
+        "foreman": ("Polier / Projektleitung", "Freigabe von Berichten und Steuerung der Projekte"),
+        "worker": ("Mitarbeiter", "Mobile Erfassung von Tagesleistungen"),
+    }
+    for code, role in roles.items():
+        if code in role_labels:
+            role.name, role.description = role_labels[code]
+
+    employee_positions = {
+        "Schneider": "Geschaeftsleitung",
+        "Kovalenko": "Polier",
+        "Meyer": "Elektriker",
+        "Klein": "Monteur",
+        "Schulz": "Sanitaerinstallateur",
+        "Weber": "Kalkulation",
+    }
+    for employee in db.scalars(select(Employee)).all():
+        if employee.last_name in employee_positions:
+            employee.position = employee_positions[employee.last_name]
+
+    account_specs = [
+        ("admin", "admin@baupilot.demo", "admin@romans-erp.demo", "Roman Schneider", "Admin12345", "Schneider"),
+        ("foreman", "foreman@baupilot.demo", "foreman@romans-erp.demo", "Oleh Kovalenko", "Foreman12345", "Kovalenko"),
+        ("worker", "worker@baupilot.demo", "worker@romans-erp.demo", "Markus Meyer", "Worker12345", "Meyer"),
+    ]
+    synced_users: dict[str, User | None] = {}
+    for role_code, email, legacy_email, full_name, password, employee_last_name in account_specs:
+        user = _find_user_by_emails(db, email, legacy_email)
+        if user is None:
+            user = User(
+                email=email,
+                full_name=full_name,
+                role=roles[role_code],
+                hashed_password=get_password_hash(password),
+                is_active=True,
+            )
+            db.add(user)
+            db.flush()
+        user.email = email
+        user.full_name = full_name
+        user.role = roles[role_code]
+        user.hashed_password = get_password_hash(password)
+        user.is_active = True
+        employee = db.scalar(select(Employee).where(Employee.last_name == employee_last_name).limit(1))
+        if employee:
+            employee.user = user
+            employee.user_id = user.id
+        synced_users[role_code] = user
+
+    db.flush()
+    return synced_users.get("admin"), synced_users.get("foreman"), synced_users.get("worker")
+
+
 def enrich_demo_data(db) -> None:
     berlin_ost = db.scalar(select(ConstructionObject).where(ConstructionObject.code == "BER-OST-C"))
     berlin_mitte = db.scalar(select(ConstructionObject).where(ConstructionObject.code == "BER-MIT-A"))
     potsdam = db.scalar(select(ConstructionObject).where(ConstructionObject.code == "POT-HAL-2"))
-    foreman = db.scalar(select(Employee).where(Employee.position.ilike("%Polier%")))
+    admin_user, foreman_user, worker_user = sync_demo_access(db)
+    foreman = db.scalar(
+        select(Employee).where(
+            or_(
+                Employee.position.ilike("%Polier%"),
+                Employee.position.ilike("%Бригадир%"),
+            )
+        )
+    )
     worker = db.scalar(select(Employee).where(Employee.last_name == "Meyer"))
     jonas = db.scalar(select(Employee).where(Employee.last_name == "Klein"))
     leon = db.scalar(select(Employee).where(Employee.last_name == "Schulz"))
-    admin_user = db.scalar(select(User).where(User.email == "admin@baupilot.demo"))
-    foreman_user = db.scalar(select(User).where(User.email == "foreman@baupilot.demo"))
-    worker_user = db.scalar(select(User).where(User.email == "worker@baupilot.demo"))
     if not all([berlin_ost, berlin_mitte, potsdam, foreman, worker, jonas, leon]):
         return
 
@@ -74,24 +149,40 @@ def enrich_demo_data(db) -> None:
         for key, value in object_details[obj.code].items():
             setattr(obj, key, value)
 
-    elektro = db.scalar(select(Crew).where(Crew.name == "Team Elektro Ost"))
+    elektro = _find_crew_by_names(db, "Team Elektro Ost", "Бригада Elektro Ost")
     if not elektro:
         elektro = Crew(name="Team Elektro Ost", specialization="Elektroinstallation", foreman=foreman, current_object=berlin_ost, notes="Aktives Team fuer Berlin Ost; zugeordnete Mitarbeiter sehen dieses Projekt automatisch.")
         db.add(elektro)
         db.flush()
-    montage = db.scalar(select(Crew).where(Crew.name == "Team Montage Potsdam"))
+    else:
+        elektro.name = "Team Elektro Ost"
+        elektro.specialization = "Elektroinstallation"
+        elektro.foreman = foreman
+        elektro.current_object = berlin_ost
+        elektro.notes = "Aktives Team fuer Berlin Ost; zugeordnete Mitarbeiter sehen dieses Projekt automatisch."
+    montage = _find_crew_by_names(db, "Team Montage Potsdam", "Бригада Montage Potsdam")
     if not montage:
         montage = Crew(name="Team Montage Potsdam", specialization="Stahlbaumontage", foreman=foreman, current_object=potsdam, notes="Montageteam fuer Vorbereitungs- und Stahlbauarbeiten in Potsdam.")
         db.add(montage)
         db.flush()
+    else:
+        montage.name = "Team Montage Potsdam"
+        montage.specialization = "Stahlbaumontage"
+        montage.foreman = foreman
+        montage.current_object = potsdam
+        montage.notes = "Montageteam fuer Vorbereitungs- und Stahlbauarbeiten in Potsdam."
 
     for crew, employee, role in [(elektro, worker, "Elektriker"), (elektro, leon, "Sanitaerinstallateur"), (montage, jonas, "Monteur")]:
         exists = db.scalar(select(CrewMember).where(CrewMember.crew_id == crew.id, CrewMember.employee_id == employee.id))
         if not exists:
             db.add(CrewMember(crew=crew, employee=employee, role_in_crew=role, joined_at=date(2026, 5, 1), is_active=True))
+        else:
+            exists.role_in_crew = role
+            exists.is_active = True
         assignment = db.scalar(select(ObjectAssignment).where(ObjectAssignment.employee_id == employee.id, ObjectAssignment.construction_object_id == crew.current_object_id, ObjectAssignment.is_active.is_(True)))
         if assignment:
             assignment.crew = crew
+            assignment.role_on_object = role
         else:
             db.add(ObjectAssignment(employee=employee, construction_object=crew.current_object, crew=crew, role_on_object=role, start_date=date(2026, 5, 1), is_active=True))
 
