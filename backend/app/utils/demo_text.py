@@ -37,10 +37,25 @@ WORK_PLAN_MAP = {
         "Haupttrasse im 2. Obergeschoss verlegen und Kabelgruppen kennzeichnen.",
         "m",
     ),
+    "Schaltfelder und temporaerer Strom": (
+        "Schaltfelder und temporäre Stromversorgung",
+        "Schaltfeld vorbereiten, Sicherungen prüfen und Fotodokumentation erstellen.",
+        "Punkte",
+    ),
+    "Schaltfelder und temporärer Strom": (
+        "Schaltfelder und temporäre Stromversorgung",
+        "Schaltfeld vorbereiten, Sicherungen prüfen und Fotodokumentation erstellen.",
+        "Punkte",
+    ),
     "Щитові та тимчасове живлення": (
         "Schaltfelder und temporäre Stromversorgung",
         "Schaltfeld vorbereiten, Sicherungen prüfen und Fotodokumentation erstellen.",
         "Punkte",
+    ),
+    "Sanitaeranschluesse": (
+        "Sanitäranschlüsse",
+        "PEX-Leitungen in den Sanitärräumen von Abschnitt C abschließen.",
+        "m",
     ),
     "Сантехнічні підключення": (
         "Sanitäranschlüsse",
