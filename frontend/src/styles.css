@@ -435,6 +435,12 @@ h3,
   backdrop-filter: blur(8px);
 }
 
+.empty-state {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
 .compact-summary {
   min-height: 88px;
   display: grid;
@@ -946,8 +952,14 @@ textarea {
   gap: 10px;
 }
 
+.activity-card-head {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
 .activity-title-row {
   justify-content: flex-start;
+  min-width: 0;
 }
 
 .activity-icon {
@@ -1262,10 +1274,8 @@ textarea {
 }
 
 .employee-card-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px 12px;
+  display: grid;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -1468,6 +1478,7 @@ textarea {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  justify-self: end;
 }
 
 .calendar-pill-label {
@@ -1512,6 +1523,15 @@ textarea {
   border-radius: 14px;
   background: var(--surface-alt);
   padding: 16px;
+}
+
+.review-status-card {
+  display: grid;
+  gap: 10px;
+}
+
+.review-note {
+  line-height: 1.55;
 }
 
 .access-fields {
@@ -1674,6 +1694,10 @@ textarea {
 
   .calendar-weekdays span {
     font-size: 0.72rem;
+  }
+
+  .calendar-status-pill {
+    justify-self: start;
   }
 
   .progress-ring {

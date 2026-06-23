@@ -101,7 +101,7 @@ export function ObjectDetailPage() {
       return;
     }
     if (Number(planForm.planned_volume) <= 0) {
-      setPlanError("Die geplante Menge muss grosser als 0 sein.");
+      setPlanError("Die geplante Menge muss größer als 0 sein.");
       return;
     }
     if (Number(planForm.completed_volume) < 0) {
@@ -144,7 +144,7 @@ export function ObjectDetailPage() {
     <section className="stack">
       <div className="object-hero">
         <div className="stack">
-          <Link className="back-link" to="/admin/objects">Zuruck zu den Projekten</Link>
+          <Link className="back-link" to="/admin/objects">Zurück zu den Projekten</Link>
           <div className="report-item-top">
             <div>
               <h2>{summary.object.name}</h2>

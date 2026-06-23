@@ -141,7 +141,7 @@ export function CrewsPage() {
       foreman_employee_id: Number(editForm.foreman_employee_id),
       current_object_id: Number(editForm.current_object_id),
     });
-    pushToast({ tone: "success", title: "Team aktualisiert", description: "Die Anderungen wurden gespeichert." });
+    pushToast({ tone: "success", title: "Team aktualisiert", description: "Die Änderungen wurden gespeichert." });
     setEditingCrew(null);
     load();
   }
@@ -213,7 +213,7 @@ export function CrewsPage() {
                         <span>{employee.position}</span>
                       </button>
                     ))}
-                    {availableEmployees.length === 0 ? <p className="helper">Alle verfugbaren Mitarbeiter sind diesem Team bereits zugeordnet.</p> : null}
+                    {availableEmployees.length === 0 ? <p className="helper">Alle verfügbaren Mitarbeiter sind diesem Team bereits zugeordnet.</p> : null}
                   </div>
                 </div>
               ) : null}
@@ -242,7 +242,7 @@ export function CrewsPage() {
               {editError ? <div className="form-error">{editError}</div> : null}
               <div className="modal-actions">
                 <button className="btn btn-secondary" type="button" onClick={() => setEditingCrew(null)}>Abbrechen</button>
-                <button className="btn btn-primary" type="submit">Anderungen speichern</button>
+                <button className="btn btn-primary" type="submit">Änderungen speichern</button>
               </div>
             </form>
           </section>

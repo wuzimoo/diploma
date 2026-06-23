@@ -210,7 +210,7 @@ export function ObjectsPage() {
               {editError ? <div className="form-error">{editError}</div> : null}
               <div className="modal-actions">
                 <button className="btn btn-secondary" type="button" onClick={() => setEditingObject(null)}>Abbrechen</button>
-                <button className="btn btn-primary" type="submit">Anderungen speichern</button>
+                <button className="btn btn-primary" type="submit">Änderungen speichern</button>
               </div>
             </form>
           </section>

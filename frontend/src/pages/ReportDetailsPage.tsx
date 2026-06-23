@@ -68,7 +68,7 @@ export function ReportDetailsPage() {
       completed_volume: form.completed_volume ? Number(form.completed_volume) : null,
       work_description: form.work_description.trim()
     });
-    pushToast({ tone: "success", title: "Bericht aktualisiert", description: "Die Anderungen wurden gespeichert." });
+    pushToast({ tone: "success", title: "Bericht aktualisiert", description: "Die Änderungen wurden gespeichert." });
     setEditing(false);
     load();
   }
@@ -112,7 +112,7 @@ export function ReportDetailsPage() {
             <div className="section-head">
               <div>
                 <h3 className="section-title">Bericht bearbeiten</h3>
-                <p className="section-subtitle">Bearbeitung ist nur vor der Freigabe durch Polier oder Verwaltung moglich.</p>
+                <p className="section-subtitle">Bearbeitung ist nur vor der Freigabe durch Polier oder Verwaltung möglich.</p>
               </div>
               <button className="icon-btn" type="button" aria-label="Schliessen" onClick={() => setEditing(false)}><X size={18} /></button>
             </div>
@@ -122,7 +122,7 @@ export function ReportDetailsPage() {
                 <label className="field">Ende<input type="time" value={form.end_time} onChange={(event) => setForm({ ...form, end_time: event.target.value })} /></label>
               </div>
               <label className="field">Pause, Min.<input type="number" min="0" value={form.break_minutes} onChange={(event) => setForm({ ...form, break_minutes: Number(event.target.value) })} /></label>
-              <label className="field">Ausgefuhrte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(event) => setForm({ ...form, completed_volume: event.target.value })} /></label>
+              <label className="field">Ausgeführte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(event) => setForm({ ...form, completed_volume: event.target.value })} /></label>
               <label className="field">Arbeitsbeschreibung<textarea value={form.work_description} onChange={(event) => setForm({ ...form, work_description: event.target.value })} /></label>
               {error ? <div className="form-error">{error}</div> : null}
               <div className="modal-actions">

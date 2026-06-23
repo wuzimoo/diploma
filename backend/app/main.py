@@ -10,7 +10,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="REST API fuer die BauPilot-Demo zur Steuerung von Baustellen, Teams, Tagesberichten und Lohnabrechnung.",
+    description="REST API für die BauPilot-Demo zur Steuerung von Baustellen, Teams, Tagesberichten und Lohnabrechnung.",
 )
 
 app.add_middleware(

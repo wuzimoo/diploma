@@ -46,7 +46,7 @@ export function ReportComments({ reportId }: { reportId: number }) {
     } catch (requestError: any) {
       setActivity([]);
       if (requestError?.response?.status === 404) {
-        setLoadError("Das Aktivitatsmodul ist auf diesem Server noch nicht verfugbar. Bitte das Backend-Deployment aktualisieren.");
+        setLoadError("Das Aktivitätsmodul ist auf diesem Server noch nicht verfügbar. Bitte das Backend-Deployment aktualisieren.");
         return;
       }
       setLoadError(requestError?.response?.data?.detail || "Die Berichtshistorie konnte nicht geladen werden.");
@@ -72,7 +72,7 @@ export function ReportComments({ reportId }: { reportId: number }) {
     try {
       await requestWithFallback("post", "comments", { body: body.trim() });
       setBody("");
-      pushToast({ tone: "success", title: "Kommentar gespeichert", description: "Die neue Notiz wurde dem Bericht hinzugefugt." });
+      pushToast({ tone: "success", title: "Kommentar gespeichert", description: "Die neue Notiz wurde dem Bericht hinzugefügt." });
       await load();
     } catch (requestError: any) {
       if (requestError?.response?.status === 404) {
@@ -129,7 +129,7 @@ export function ReportComments({ reportId }: { reportId: number }) {
           })
         ) : (
           <div className="empty-state">
-            <strong>{loadError ? "Historie nicht verfugbar" : "Noch keine Ereignisse"}</strong>
+            <strong>{loadError ? "Historie nicht verfügbar" : "Noch keine Ereignisse"}</strong>
             <span>{loadError ? "Nach dem Backend-Update wird dieser Bereich automatisch aktiv." : "Der erste Kommentar oder Statuswechsel erscheint hier."}</span>
           </div>
         )}

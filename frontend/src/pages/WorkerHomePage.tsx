@@ -48,7 +48,7 @@ export function WorkerHomePage() {
         <section className="stack">
           <div>
             <h2 className="section-title">Letzte Berichte</h2>
-            <p className="section-subtitle">Schneller Uberblick uber die letzten Einreichungen</p>
+            <p className="section-subtitle">Schneller Überblick über die letzten Einreichungen</p>
           </div>
           {reports.length === 0 ? <EmptyState title="Noch keine Berichte" text="Neu erfasste Berichte erscheinen hier automatisch." /> : (
             <div className="report-list">

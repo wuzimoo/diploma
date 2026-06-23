@@ -43,11 +43,11 @@ export function CreateReportPage() {
       return;
     }
     if (!form.completed_volume) {
-      setFormError("Bitte geben Sie die ausgefuhrte Menge an.");
+      setFormError("Bitte geben Sie die ausgeführte Menge an.");
       return;
     }
     if (Number(form.completed_volume) <= 0) {
-      setFormError("Die ausgefuhrte Menge muss grosser als 0 sein.");
+      setFormError("Die ausgeführte Menge muss größer als 0 sein.");
       return;
     }
     if (form.end_time <= form.start_time) {
@@ -59,7 +59,7 @@ export function CreateReportPage() {
       return;
     }
     if (workedHours <= 0) {
-      setFormError("Die Arbeitszeit muss grosser als 0 Stunden sein.");
+      setFormError("Die Arbeitszeit muss größer als 0 Stunden sein.");
       return;
     }
     setFormError("");
@@ -81,16 +81,16 @@ export function CreateReportPage() {
         headers: { "Content-Type": "multipart/form-data" }
       });
     }));
-    pushToast({ tone: "success", title: "Bericht gesendet", description: "Der Tagesbericht wurde an den Polier zur Prufung ubergeben." });
+    pushToast({ tone: "success", title: "Bericht gesendet", description: "Der Tagesbericht wurde an den Polier zur Prüfung übergeben." });
     navigate(`/worker/reports/${response.data.id}`);
   }
 
   return (
     <>
       <header className="mobile-header">
-        <button className="back-link button-reset" onClick={() => navigate(-1)} type="button">Zuruck zur Ubersicht</button>
+        <button className="back-link button-reset" onClick={() => navigate(-1)} type="button">Zurück zur Übersicht</button>
         <h1>Tagesbericht erfassen</h1>
-        <p>Bitte prufen Sie vor dem Absenden Zeiten, Menge und Beschreibung.</p>
+        <p>Bitte prüfen Sie vor dem Absenden Zeiten, Menge und Beschreibung.</p>
       </header>
       <main className="mobile-content">
         <form className="form-grid" onSubmit={submit}>
@@ -109,7 +109,7 @@ export function CreateReportPage() {
           </div>
           <label className="field">Pause, Min.<input type="number" value={form.break_minutes} onChange={(e) => setForm({ ...form, break_minutes: Number(e.target.value) })} /></label>
           <div className="hours-row"><span>Berechnete Arbeitszeit</span><strong>{formatHours(workedHours)}</strong></div>
-          <label className="field">Ausgefuhrte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="z. B. 12,5" /></label>
+          <label className="field">Ausgeführte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="z. B. 12,5" /></label>
           <label className="field">Arbeitsbeschreibung<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="z. B. Kabeltrassen montiert, Hauptverteilung vorbereitet" /></label>
           <label className="field">Fotos / Medien<input type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Dateien werden gemeinsam mit dem Bericht hochgeladen und bleiben in der Berichtskarte sichtbar.</span></label>
           {formError ? <div className="form-error">{formError}</div> : null}

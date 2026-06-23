@@ -39,8 +39,8 @@ test("worker mobile flow covers calendar switching, report creation and locked f
 
   await page.getByRole("link", { name: /Bericht/ }).click();
   await page.getByLabel("Arbeitspaket").selectOption("1");
-  await page.getByLabel("Ausgefuhrte Menge").fill("12");
-  await page.getByLabel("Arbeitsbeschreibung").fill("Kabeltrassen montiert, Material gepruft und die Verteilung vorbereitet.");
+  await page.getByLabel("Ausgeführte Menge").fill("12");
+  await page.getByLabel("Arbeitsbeschreibung").fill("Kabeltrassen montiert, Material geprüft und die Verteilung vorbereitet.");
   await page.getByRole("button", { name: "Bericht einreichen" }).click();
 
   await expect(page.getByRole("heading", { name: /DR-2026-/ })).toBeVisible();
@@ -65,10 +65,10 @@ test("foreman can approve submitted report and add comment", async ({ page }) =>
   await expect(page.getByText("Vom Polier freigegeben")).toBeVisible();
   await expect(page.getByText("Wartet auf die Verwaltung")).toBeVisible();
 
-  await page.getByLabel("Kommentar erfassen").fill("Vor Ort gepruft, ich gebe an die Verwaltung weiter.");
+  await page.getByLabel("Kommentar erfassen").fill("Vor Ort geprüft, ich gebe an die Verwaltung weiter.");
   await page.getByRole("button", { name: "Kommentar speichern" }).click();
   await expect(page.getByText("Kommentar gespeichert")).toBeVisible();
-  await expect(page.getByText("Vor Ort gepruft, ich gebe an die Verwaltung weiter.")).toBeVisible();
+  await expect(page.getByText("Vor Ort geprüft, ich gebe an die Verwaltung weiter.")).toBeVisible();
 });
 
 test("admin can final approve report, manage employee access and export payroll csv", async ({ page }) => {
@@ -111,7 +111,7 @@ test("admin can final approve report, manage employee access and export payroll 
   await page.getByLabel("Neues Passwort").fill("Updated12345");
   await page.getByRole("button", { name: "Passwort aktualisieren" }).click();
   await expect(page.getByText("Passwort aktualisiert")).toBeVisible();
-  await page.getByRole("button", { name: "Anderungen speichern" }).click();
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
   await expect(page.locator(".modal-backdrop")).toHaveCount(0);
 
   await page.getByRole("link", { name: /Lohn/ }).click();

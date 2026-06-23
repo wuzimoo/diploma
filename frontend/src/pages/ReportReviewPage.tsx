@@ -35,7 +35,7 @@ export function ReportReviewPage() {
   async function setStatus(status: string) {
     setSaving(true);
     try {
-      await api.patch(`/daily-reports/${id}/status`, { status, rejection_reason: status === "rejected" || status === "change_requested" ? "Bitte Arbeitsbeschreibung erganzen oder Fotos nachreichen." : null });
+      await api.patch(`/daily-reports/${id}/status`, { status, rejection_reason: status === "rejected" || status === "change_requested" ? "Bitte Arbeitsbeschreibung ergänzen oder Fotos nachreichen." : null });
       await api.get<DailyReport>(`/daily-reports/${id}`).then((response) => setReport(response.data));
       pushToast({
         tone: "success",
@@ -85,14 +85,14 @@ export function ReportReviewPage() {
       <aside className="table-card stack sticky-actions">
         <div>
           <h2 className="section-title">Freigabe</h2>
-          <p className="section-subtitle">Status, Phase und verfugbare Aktionen</p>
+          <p className="section-subtitle">Status, Phase und verfügbare Aktionen</p>
         </div>
-        <div className="summary-card"><span className="text-muted">Aktueller Status</span><StatusBadge status={report.status} /></div>
+        <div className="summary-card review-status-card"><span className="text-muted">Aktueller Status</span><StatusBadge status={report.status} /></div>
         {foremanActions ? <button className="btn btn-primary btn-block" disabled={saving} onClick={() => setStatus("foreman_approved")} type="button">Als Polier freigeben</button> : null}
         {adminActions ? <button className="btn btn-primary btn-block" disabled={saving || report.status !== "foreman_approved"} onClick={() => setStatus("admin_approved")} type="button">Final freigeben</button> : null}
         <button className="btn btn-ghost btn-block" disabled={saving} onClick={() => setStatus("rejected")} type="button">Ablehnen</button>
         <button className="btn btn-secondary btn-block" disabled={saving} onClick={() => setStatus("change_requested")} type="button">Nacharbeit anfordern</button>
-        <div className="warning-note">Mitarbeiter reichen Berichte ein, Poliere prufen vor und die Verwaltung gibt fur die Lohnabrechnung final frei.</div>
+        <div className="warning-note review-note">Mitarbeiter reichen Berichte ein, Poliere prüfen vor und die Verwaltung gibt für die Lohnabrechnung final frei.</div>
         <Link className="btn btn-link btn-block" to="/admin/reports">Zur Liste</Link>
       </aside>
     </div>

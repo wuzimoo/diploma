@@ -50,7 +50,7 @@ function statusIndicator(day?: CalendarDay) {
     return { icon: X, tone: "danger", label: "Abgelehnt oder zur Nacharbeit" };
   }
   if (day.severity === "warning") {
-    return { icon: TriangleAlert, tone: "warning", label: "Wartet auf Prufung" };
+    return { icon: TriangleAlert, tone: "warning", label: "Wartet auf Prüfung" };
   }
   return { icon: Check, tone: "success", label: "Freigegeben" };
 }
@@ -84,10 +84,10 @@ export function CalendarPage() {
     <>
       <header className="mobile-header">
         <h1>Berichtskalender</h1>
-        <p>Monatsansicht fur Einreichungen, Freigaben und Tage mit Nacharbeit.</p>
+        <p>Monatsansicht für Einreichungen, Freigaben und Tage mit Nacharbeit.</p>
       </header>
       <main className="mobile-content">
-        <section className="calendar-board" aria-label={`Berichtskalender fur ${monthTitle}`}>
+        <section className="calendar-board" aria-label={`Berichtskalender für ${monthTitle}`}>
           <div className="calendar-month-header">
             <button className="icon-btn" type="button" aria-label="Vorheriger Monat" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>
               <ChevronLeft size={18} />
@@ -153,8 +153,8 @@ export function CalendarPage() {
             ))
           ) : (
             <div className="empty-state">
-              <strong>Keine Berichte fur diesen Tag</strong>
-              <span>Wahlen Sie einen anderen Tag oder wechseln Sie den Monat.</span>
+              <strong>Keine Berichte für diesen Tag</strong>
+              <span>Wählen Sie einen anderen Tag oder wechseln Sie den Monat.</span>
             </div>
           )}
         </section>

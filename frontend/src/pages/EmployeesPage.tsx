@@ -24,7 +24,7 @@ function employeeError(form: typeof emptyForm, options?: { requirePasswordForAcc
   if (!form.first_name.trim() || !form.last_name.trim()) return "Vorname und Nachname sind erforderlich.";
   if (!form.position.trim()) return "Bitte Rolle oder Funktion angeben.";
   if (form.phone.trim() && !/^[+\d][\d\s()\-]{6,}$/.test(form.phone.trim())) return "Die Telefonnummer muss mindestens 7 Zeichen im gultigen Format enthalten.";
-  if (!form.hourly_rate || Number(form.hourly_rate) <= 0) return "Der Stundensatz in EUR muss grosser als 0 sein.";
+  if (!form.hourly_rate || Number(form.hourly_rate) <= 0) return "Der Stundensatz in EUR muss größer als 0 sein.";
   if (options?.requirePasswordForAccess && form.access_email.trim() && !form.access_password.trim()) return "Fur den Zugang ist ein temporares Passwort erforderlich.";
   return "";
 }
@@ -174,7 +174,7 @@ export function EmployeesPage() {
 
   async function restoreEmployee(employee: Employee) {
     await api.patch(`/employees/${employee.id}`, { status: "active", access_is_active: true });
-    pushToast({ tone: "success", title: "Mitarbeiter reaktiviert", description: "Der Datensatz ist wieder fur Teams und Einsatze verfugbar." });
+    pushToast({ tone: "success", title: "Mitarbeiter reaktiviert", description: "Der Datensatz ist wieder für Teams und Einsätze verfügbar." });
     load();
   }
 
@@ -303,7 +303,7 @@ export function EmployeesPage() {
               {editError ? <div className="form-error">{editError}</div> : null}
               <div className="modal-actions">
                 <button className="btn btn-secondary" type="button" onClick={() => setSelectedEmployee(null)}>Abbrechen</button>
-                <button className="btn btn-primary" type="submit">Anderungen speichern</button>
+                <button className="btn btn-primary" type="submit">Änderungen speichern</button>
               </div>
             </form>
           </section>

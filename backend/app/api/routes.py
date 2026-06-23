@@ -77,6 +77,20 @@ from app.schemas import (
 )
 from app.services.crud import create_item, delete_item, get_or_404, list_query, next_report_number, next_request_number, update_item
 from app.utils.dates import calculate_worked_hours
+from app.utils.demo_text import (
+    normalize_crew_name,
+    normalize_media_note,
+    normalize_name_part,
+    normalize_photo_caption,
+    normalize_position,
+    normalize_report_comment,
+    normalize_report_description,
+    normalize_report_event_body,
+    normalize_report_event_title,
+    normalize_role_in_crew,
+    normalize_specialization,
+    normalize_work_plan_fields,
+)
 
 router = APIRouter()
 
@@ -106,7 +120,7 @@ def role_by_code(db: Session, code: str) -> Role:
 
 
 def employee_full_name(first_name: str, last_name: str) -> str:
-    return f"{first_name.strip()} {last_name.strip()}".strip()
+    return f"{normalize_name_part(first_name)} {normalize_name_part(last_name)}".strip()
 
 
 def employee_for_user(db: Session, current_user: User) -> Employee | None:
@@ -147,7 +161,7 @@ def apply_employee_access(db: Session, employee: Employee, access_email: str | N
         if not access_email:
             return
         if not access_password:
-            raise HTTPException(status_code=400, detail="Fuer den Zugang wird ein temporaeres Passwort benoetigt")
+            raise HTTPException(status_code=400, detail="Für den Zugang wird ein temporäres Passwort benötigt")
         role = role_by_code(db, access_role_code or "worker")
         user = User(
             email=access_email,
@@ -193,12 +207,14 @@ def add_report_event(
     tone: str = "neutral",
     actor_id: int | None = None,
 ) -> ReportEvent:
+    normalized_title = normalize_report_event_title(title, event_type)
+    normalized_body = normalize_report_event_body(body, event_type=event_type, title=normalized_title)
     event = ReportEvent(
         report_id=report.id,
         user_id=actor_id,
         event_type=event_type,
-        title=title,
-        body=body,
+        title=normalized_title,
+        body=normalized_body,
         tone=tone,
     )
     db.add(event)
@@ -253,20 +269,21 @@ def report_activity_items(item_id: int, db: Session) -> list[ReportActivityItemO
             ReportActivityItemOut(
                 id=f"comment-{comment.id}",
                 kind="comment",
-                title="Kommentar hinzugefuegt",
-                body=comment.body,
+                title="Kommentar hinzugefügt",
+                body=normalize_report_comment(comment.body),
                 tone="neutral",
                 created_at=comment.created_at,
                 author=comment.author,
             )
         )
     for event in events:
+        normalized_title = normalize_report_event_title(event.title, event.event_type)
         merged.append(
             ReportActivityItemOut(
                 id=f"event-{event.id}",
                 kind="event",
-                title=event.title,
-                body=event.body,
+                title=normalized_title,
+                body=normalize_report_event_body(event.body, event_type=event.event_type, title=normalized_title),
                 tone=event.tone,
                 created_at=event.created_at,
                 author=event.actor,
@@ -500,6 +517,9 @@ def list_employees(skip: int = 0, limit: int = 50, search: str | None = None, st
 @router.post("/employees", response_model=EmployeeOut, status_code=status.HTTP_201_CREATED, tags=["employees"])
 def create_employee(payload: EmployeeCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Employee:
     data = payload.model_dump()
+    data["first_name"] = normalize_name_part(data["first_name"])
+    data["last_name"] = normalize_name_part(data["last_name"])
+    data["position"] = normalize_position(data["position"], fallback="Fachkraft")
     access_email = data.pop("access_email", None)
     access_password = data.pop("access_password", None)
     access_role_code = data.pop("access_role_code", None)
@@ -523,6 +543,12 @@ def get_employee(item_id: int, db: Session = Depends(get_db), _: User = Depends(
 @router.patch("/employees/{item_id}", response_model=EmployeeOut, tags=["employees"])
 def update_employee(item_id: int, payload: EmployeeUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Employee:
     data = payload.model_dump(exclude_unset=True)
+    if "first_name" in data and data["first_name"] is not None:
+        data["first_name"] = normalize_name_part(data["first_name"])
+    if "last_name" in data and data["last_name"] is not None:
+        data["last_name"] = normalize_name_part(data["last_name"])
+    if "position" in data and data["position"] is not None:
+        data["position"] = normalize_position(data["position"], fallback="Fachkraft")
     access_email = data.pop("access_email", None) if "access_email" in data else None
     access_password = data.pop("access_password", None) if "access_password" in data else None
     access_role_code = data.pop("access_role_code", None) if "access_role_code" in data else None
@@ -609,12 +635,17 @@ def list_assignments(skip: int = 0, limit: int = 50, employee_id: int | None = N
 
 @router.post("/assignments", response_model=AssignmentOut, status_code=status.HTTP_201_CREATED, tags=["assignments"])
 def create_assignment(payload: AssignmentCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> ObjectAssignment:
-    return create_item(db, ObjectAssignment, payload.model_dump())
+    data = payload.model_dump()
+    data["role_on_object"] = normalize_role_in_crew(data.get("role_on_object"))
+    return create_item(db, ObjectAssignment, data)
 
 
 @router.patch("/assignments/{item_id}", response_model=AssignmentOut, tags=["assignments"])
 def update_assignment(item_id: int, payload: AssignmentUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> ObjectAssignment:
-    return update_item(db, get_or_404(db, ObjectAssignment, item_id), payload.model_dump(exclude_unset=True))
+    data = payload.model_dump(exclude_unset=True)
+    if "role_on_object" in data and data["role_on_object"] is not None:
+        data["role_on_object"] = normalize_role_in_crew(data["role_on_object"])
+    return update_item(db, get_or_404(db, ObjectAssignment, item_id), data)
 
 
 @router.delete("/assignments/{item_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["assignments"])
@@ -658,13 +689,21 @@ def list_crews(skip: int = 0, limit: int = 50, current_object_id: int | None = N
 
 @router.post("/crews", response_model=CrewOut, status_code=status.HTTP_201_CREATED, tags=["crews"])
 def create_crew(payload: CrewCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Crew:
-    crew = create_item(db, Crew, payload.model_dump())
+    data = payload.model_dump()
+    data["name"] = normalize_crew_name(data["name"])
+    data["specialization"] = normalize_specialization(data["specialization"])
+    crew = create_item(db, Crew, data)
     return db.scalar(crew_query().where(Crew.id == crew.id))
 
 
 @router.patch("/crews/{item_id}", response_model=CrewOut, tags=["crews"])
 def update_crew(item_id: int, payload: CrewUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> Crew:
-    update_item(db, get_or_404(db, Crew, item_id), payload.model_dump(exclude_unset=True))
+    data = payload.model_dump(exclude_unset=True)
+    if "name" in data and data["name"] is not None:
+        data["name"] = normalize_crew_name(data["name"])
+    if "specialization" in data and data["specialization"] is not None:
+        data["specialization"] = normalize_specialization(data["specialization"])
+    update_item(db, get_or_404(db, Crew, item_id), data)
     return db.scalar(crew_query().where(Crew.id == item_id))
 
 
@@ -683,13 +722,21 @@ def create_crew_member(payload: CrewMemberCreate, db: Session = Depends(get_db),
     if existing_member:
         crew_name = existing_member.crew.name if existing_member.crew else "einem anderen Team"
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Der Mitarbeiter ist bereits einem aktiven Team zugeordnet: {crew_name}")
-    item = create_item(db, CrewMember, payload.model_dump())
+    data = payload.model_dump()
+    employee = get_or_404(db, Employee, data["employee_id"])
+    data["role_in_crew"] = normalize_role_in_crew(data.get("role_in_crew"), employee.position)
+    item = create_item(db, CrewMember, data)
     return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item.id))
 
 
 @router.patch("/crew-members/{item_id}", response_model=CrewMemberOut, tags=["crews"])
 def update_crew_member(item_id: int, payload: CrewMemberUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin"))) -> CrewMember:
-    update_item(db, get_or_404(db, CrewMember, item_id), payload.model_dump(exclude_unset=True))
+    item = get_or_404(db, CrewMember, item_id)
+    data = payload.model_dump(exclude_unset=True)
+    if "role_in_crew" in data and data["role_in_crew"] is not None:
+        employee = db.get(Employee, data.get("employee_id") or item.employee_id)
+        data["role_in_crew"] = normalize_role_in_crew(data["role_in_crew"], employee.position if employee else None)
+    update_item(db, item, data)
     return db.scalar(select(CrewMember).options(selectinload(CrewMember.employee)).where(CrewMember.id == item_id))
 
 
@@ -705,12 +752,20 @@ def list_work_plan_items(construction_object_id: int | None = None, crew_id: int
 
 @router.post("/work-plan-items", response_model=WorkPlanItemOut, status_code=status.HTTP_201_CREATED, tags=["work plan"])
 def create_work_plan_item(payload: WorkPlanItemCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> WorkPlanItem:
-    return create_item(db, WorkPlanItem, payload.model_dump())
+    data = payload.model_dump()
+    data["title"], data["description"], data["unit"] = normalize_work_plan_fields(data["title"], data.get("description"), data.get("unit"))
+    return create_item(db, WorkPlanItem, data)
 
 
 @router.patch("/work-plan-items/{item_id}", response_model=WorkPlanItemOut, tags=["work plan"])
 def update_work_plan_item(item_id: int, payload: WorkPlanItemUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> WorkPlanItem:
-    return update_item(db, get_or_404(db, WorkPlanItem, item_id), payload.model_dump(exclude_unset=True))
+    item = get_or_404(db, WorkPlanItem, item_id)
+    data = payload.model_dump(exclude_unset=True)
+    title = data.get("title", item.title)
+    description = data.get("description", item.description)
+    unit = data.get("unit", item.unit)
+    data["title"], data["description"], data["unit"] = normalize_work_plan_fields(title, description, unit)
+    return update_item(db, item, data)
 
 @router.get("/daily-reports", response_model=list[DailyReportOut], tags=["daily reports"])
 def list_reports(
@@ -767,6 +822,10 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), cur
     data["report_number"] = data["report_number"] or next_report_number(db)
     data["worked_hours"] = data["worked_hours"] or calculate_worked_hours(data["start_time"], data["end_time"], data["break_minutes"])
     data["status"] = normalize_report_status(data.get("status") or "submitted")
+    plan = db.get(WorkPlanItem, data["work_plan_item_id"]) if data.get("work_plan_item_id") else None
+    fallback_description = f"{plan.title} dokumentiert und zur Prüfung eingereicht." if plan else None
+    data["work_description"] = normalize_report_description(data.get("work_description"), fallback=fallback_description)
+    data["media_note"] = normalize_media_note(data.get("media_note"))
     item = create_item(db, DailyReport, data)
     if item.work_plan_item_id and item.completed_volume:
         plan = get_or_404(db, WorkPlanItem, item.work_plan_item_id)
@@ -780,7 +839,7 @@ def create_report(payload: DailyReportCreate, db: Session = Depends(get_db), cur
         db,
         item,
         event_type="report_created",
-        title="Bericht veroeffentlicht",
+        title="Bericht veröffentlicht",
         body=f"Tagesbericht {item.report_number} wurde erstellt.",
         tone="success",
         actor_id=current_user.id,
@@ -804,7 +863,7 @@ def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depend
     ensure_report_access(db, item, current_user)
     item.status = normalize_report_status(item.status)
     if item.status not in REPORT_EDITABLE_STATUSES:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Der Bericht ist bereits freigegeben und fuer Bearbeitungen gesperrt")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Der Bericht ist bereits freigegeben und für Bearbeitungen gesperrt")
     if {"start_time", "end_time", "break_minutes"} & data.keys():
         start = data.get("start_time", item.start_time)
         end = data.get("end_time", item.end_time)
@@ -812,13 +871,18 @@ def update_report(item_id: int, payload: DailyReportUpdate, db: Session = Depend
         data["worked_hours"] = calculate_worked_hours(start, end, pause)
     if "status" in data and data["status"] is not None:
         data["status"] = normalize_report_status(data["status"])
+    if "work_description" in data and data["work_description"] is not None:
+        fallback_description = f"{item.work_plan_item.title} dokumentiert und zur Prüfung eingereicht." if item.work_plan_item else None
+        data["work_description"] = normalize_report_description(data["work_description"], fallback=fallback_description)
+    if "media_note" in data and data["media_note"] is not None:
+        data["media_note"] = normalize_media_note(data["media_note"])
     update_item(db, item, data)
     add_report_event(
         db,
         item,
         event_type="report_updated",
         title="Bericht aktualisiert",
-        body="Leistungsbeschreibung oder Arbeitsparameter wurden geaendert.",
+        body="Leistungsbeschreibung oder Arbeitsparameter wurden geändert.",
         tone="neutral",
         actor_id=current_user.id,
     )
@@ -873,7 +937,9 @@ def delete_report(item_id: int, db: Session = Depends(get_db), _: User = Depends
 
 @router.post("/report-photos", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
 def create_photo_metadata(payload: ReportPhotoCreate, db: Session = Depends(get_db), _: User = Depends(get_current_user)) -> ReportPhoto:
-    return create_item(db, ReportPhoto, payload.model_dump())
+    data = payload.model_dump()
+    data["caption"] = normalize_photo_caption(data.get("caption"), data.get("file_name"))
+    return create_item(db, ReportPhoto, data)
 
 
 @router.post("/reports/{item_id}/media", response_model=ReportPhotoOut, status_code=status.HTTP_201_CREATED, tags=["report photos"])
@@ -886,7 +952,7 @@ async def upload_report_media(item_id: int, file: UploadFile = File(...), captio
         daily_report_id=item_id,
         file_name=file.filename or "media.bin",
         file_url="",
-        caption=caption or file.filename or "Mediendatei",
+        caption=normalize_photo_caption(caption, file.filename or "Mediendatei"),
         content_type=file.content_type,
         size_bytes=len(content),
         file_blob=content,
@@ -900,8 +966,8 @@ async def upload_report_media(item_id: int, file: UploadFile = File(...), captio
         db,
         report,
         event_type="media_uploaded",
-        title="Mediendatei hinzugefuegt",
-        body=f"Datei \"{photo.file_name}\" wurde an den Bericht angehaengt.",
+        title="Mediendatei hinzugefügt",
+        body=f'Datei "{photo.file_name}" wurde an den Bericht angehängt.',
         tone="success",
         actor_id=current_user.id,
     )
@@ -933,7 +999,7 @@ def _list_report_comments(item_id: int, db: Session) -> list[ReportComment]:
 
 def _create_report_comment(item_id: int, payload: ReportCommentCreate, db: Session, current_user: User) -> ReportComment:
     get_or_404(db, DailyReport, item_id)
-    comment = create_item(db, ReportComment, {"report_id": item_id, "user_id": current_user.id, "body": payload.body.strip()})
+    comment = create_item(db, ReportComment, {"report_id": item_id, "user_id": current_user.id, "body": normalize_report_comment(payload.body)})
     return db.scalar(
         select(ReportComment)
         .options(selectinload(ReportComment.author).selectinload(User.role))
@@ -1137,7 +1203,7 @@ def dashboard_analytics(db: Session = Depends(get_db), current_user: User = Depe
         "expense_total": round(expense_total, 2),
         "hours_by_object": hours_by_object,
         "object_progress": object_progress,
-        "expense_hint": "Kosten werden als Summe aller Eintraege pro Projekt berechnet. Stunden ergeben sich aus den Berichten; fuer die Lohnabrechnung zaehlen nur final freigegebene Berichte.",
+        "expense_hint": "Kosten werden als Summe aller Einträge pro Projekt berechnet. Stunden ergeben sich aus den Berichten; für die Lohnabrechnung zählen nur final freigegebene Berichte.",
     }
 
 

@@ -1,6 +1,6 @@
 const labels: Record<string, string> = {
   open: "Eingereicht",
-  review: "In Prufung",
+  review: "In Prüfung",
   approved: "Final freigegeben",
   draft: "Entwurf",
   submitted: "Beim Polier",
