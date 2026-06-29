@@ -1660,9 +1660,11 @@ textarea {
 }
 
 .entity-card.object-progress-card {
+  display: grid;
+  grid-template-rows: minmax(88px, auto) minmax(72px, auto) auto auto;
   gap: 14px;
   min-height: 0;
-  align-content: start;
+  align-content: stretch;
   padding: 16px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.98) 100%);
 }
@@ -1672,7 +1674,19 @@ textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-height: 88px;
   min-width: 0;
+}
+
+.object-progress-head .compact-stack {
+  min-width: 0;
+  align-content: start;
+}
+
+.object-progress-head .compact-stack strong {
+  display: block;
+  line-height: 1.2;
+  min-height: 2.4em;
 }
 
 .entity-card.object-progress-card .badge,
@@ -1683,6 +1697,9 @@ textarea {
 .object-progress-copy {
   color: var(--muted);
   font-size: 0.92rem;
+  line-height: 1.45;
+  min-height: 4.2em;
+  margin: 0;
 }
 
 .entity-card.object-progress-card .mini-progress {
@@ -1830,10 +1847,20 @@ textarea {
     justify-self: start;
   }
 
+  .entity-card.object-progress-card {
+    grid-template-rows: auto auto auto auto;
+  }
+
   .object-progress-head,
   .object-progress-foot {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .object-progress-head,
+  .object-progress-copy,
+  .object-progress-head .compact-stack strong {
+    min-height: 0;
   }
 
   .report-item-top,
