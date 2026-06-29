@@ -2,10 +2,13 @@ import { FormEvent, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
+import { useI18n } from "../hooks/useI18n";
 import { APP_LOGIN_CHIP, APP_LOGIN_COPY, APP_LOGIN_HEADLINE, APP_NAME } from "../lib/branding";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 
 export function LoginPage() {
   const { user, login } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [email, setEmail] = useState("worker@baupilot.demo");
   const [password, setPassword] = useState("Worker12345");
@@ -24,7 +27,7 @@ export function LoginPage() {
       const loggedUser = await login(email, password);
       navigate(loggedUser.role.code === "worker" ? "/worker" : "/admin", { replace: true });
     } catch {
-      setError("Anmeldung fehlgeschlagen. Bitte E-Mail, Passwort und API-Verbindung prufen.");
+      setError(t("Anmeldung fehlgeschlagen. Bitte E-Mail, Passwort und API-Verbindung prüfen."));
     } finally {
       setLoading(false);
     }
@@ -33,28 +36,31 @@ export function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-card">
-        <span className="brand-chip">{APP_LOGIN_CHIP}</span>
-        <h1>{APP_LOGIN_HEADLINE}</h1>
-        <p><strong>{APP_NAME}</strong> fasst Bautagesberichte, Projektsteuerung und Freigaben in einer ruhigen Demo fur Bauunternehmen zusammen.</p>
-        <p>{APP_LOGIN_COPY}</p>
+        <div className="login-head-row">
+          <span className="brand-chip">{t(APP_LOGIN_CHIP)}</span>
+          <LanguageSwitcher className="login-language-switcher" />
+        </div>
+        <h1>{t(APP_LOGIN_HEADLINE)}</h1>
+        <p><strong>{APP_NAME}</strong> {t("Bautagesberichte, Projektsteuerung und Freigaben in einer ruhigen Demo fur Bauunternehmen zusammen.")}</p>
+        <p>{t(APP_LOGIN_COPY)}</p>
         <form className="form-grid" onSubmit={submit}>
           <label className="field">
-            Email
+            {t("Email")}
             <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
           </label>
           <label className="field">
-            Passwort
+            {t("Passwort")}
             <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
           </label>
           {error && <p className="form-error">{error}</p>}
           <button className="btn btn-primary btn-block" disabled={loading} type="submit">
-            {loading ? "Anmeldung..." : "Anmelden"}
+            {loading ? t("Anmeldung...") : t("Anmelden")}
           </button>
         </form>
         <div className="demo-logins">
-          <button type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>Admin</button>
-          <button type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>Polier</button>
-          <button type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>Mitarbeiter</button>
+          <button type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>{t("Admin")}</button>
+          <button type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>{t("Polier")}</button>
+          <button type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>{t("Mitarbeiter")}</button>
         </div>
       </section>
     </main>

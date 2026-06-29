@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
+import { useI18n } from "../hooks/useI18n";
 import { formatHours, formatLongDate, formatMonthYear, reportCountLabel } from "../lib/format";
 import { api } from "../services/api";
 import { CalendarDay } from "../types/api";
@@ -42,20 +43,21 @@ function buildCalendarGrid(currentMonth: Date) {
   return cells;
 }
 
-function statusIndicator(day?: CalendarDay) {
+function statusIndicator(day: CalendarDay | undefined, t: (key: string) => string) {
   if (!day || day.count === 0) {
-    return { icon: Minus, tone: "neutral", label: "Keine Berichte" };
+    return { icon: Minus, tone: "neutral", label: t("Keine Berichte") };
   }
   if (day.severity === "danger") {
-    return { icon: X, tone: "danger", label: "Abgelehnt oder zur Nacharbeit" };
+    return { icon: X, tone: "danger", label: t("Abgelehnt oder zur Nacharbeit") };
   }
   if (day.severity === "warning") {
-    return { icon: TriangleAlert, tone: "warning", label: "Wartet auf Prüfung" };
+    return { icon: TriangleAlert, tone: "warning", label: t("Wartet auf Prüfung") };
   }
-  return { icon: Check, tone: "success", label: "Freigegeben" };
+  return { icon: Check, tone: "success", label: t("Freigegeben") };
 }
 
 export function CalendarPage() {
+  const { t, translateText, weekdaysShort } = useI18n();
   const location = useLocation();
   const reportBase = location.pathname.startsWith("/admin") ? "/admin/reports" : "/worker/reports";
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
@@ -77,28 +79,28 @@ export function CalendarPage() {
 
   const byDate = useMemo(() => new Map(rows.map((row) => [row.date, row])), [rows]);
   const selected = byDate.get(selectedDate);
-  const selectedIndicator = statusIndicator(selected);
+  const selectedIndicator = statusIndicator(selected, t);
   const SelectedIcon = selectedIndicator.icon;
 
   return (
     <>
       <header className="mobile-header">
-        <h1>Berichtskalender</h1>
-        <p>Monatsansicht für Einreichungen, Freigaben und Tage mit Nacharbeit.</p>
+        <h1>{t("Berichtskalender")}</h1>
+        <p>{t("Monatsansicht für Einreichungen, Freigaben und Tage mit Nacharbeit.")}</p>
       </header>
       <main className="mobile-content">
-        <section className="calendar-board" aria-label={`Berichtskalender für ${monthTitle}`}>
+        <section className="calendar-board" aria-label={`${t("Berichtskalender")} ${monthTitle}`}>
           <div className="calendar-month-header">
-            <button className="icon-btn" type="button" aria-label="Vorheriger Monat" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>
+            <button className="icon-btn" type="button" aria-label={t("Vorheriger Monat")} onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>
               <ChevronLeft size={18} />
             </button>
             <strong>{monthTitle}</strong>
-            <button className="icon-btn" type="button" aria-label="Nächster Monat" onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>
+            <button className="icon-btn" type="button" aria-label={t("Nächster Monat")} onClick={() => setMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>
               <ChevronRight size={18} />
             </button>
           </div>
           <div className="calendar-weekdays">
-            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <span key={day}>{day}</span>)}
+            {weekdaysShort.map((day) => <span key={day}>{day}</span>)}
           </div>
           <div className="calendar-grid">
             {monthDays.map((cell, index) => {
@@ -106,7 +108,7 @@ export function CalendarPage() {
                 return <div className="calendar-empty" key={`empty-${index}`} aria-hidden="true" />;
               }
               const day = byDate.get(cell.iso);
-              const indicator = statusIndicator(day);
+              const indicator = statusIndicator(day, t);
               const Icon = indicator.icon;
               return (
                 <button
@@ -131,7 +133,7 @@ export function CalendarPage() {
             <div>
               <h2 className="section-title">{selectedDateLabel}</h2>
               <p className="section-subtitle">
-                {selected ? `${reportCountLabel(selected.count)}, ${formatHours(selected.hours)}` : "Keine Berichte an diesem Tag"}
+                {selected ? `${reportCountLabel(selected.count)}, ${formatHours(selected.hours)}` : t("Keine Berichte an diesem Tag")}
               </p>
             </div>
             <div className="calendar-status-pill">
@@ -139,7 +141,7 @@ export function CalendarPage() {
               {selected?.count ? (
                 <StatusBadge status={selected.severity === "danger" ? "rejected" : selected.severity === "warning" ? "submitted" : "admin_approved"} />
               ) : (
-                <span className="calendar-pill-label">Keine Berichte</span>
+                <span className="calendar-pill-label">{t("Keine Berichte")}</span>
               )}
             </div>
           </div>
@@ -147,14 +149,14 @@ export function CalendarPage() {
             selected.reports.map((report) => (
               <Link className="report-item" key={report.id} to={`${reportBase}/${report.id}`}>
                 <div className="report-item-top"><strong>{report.report_number}</strong><StatusBadge status={report.status} /></div>
-                <p>{report.employee} · {report.object}</p>
-                <div className="report-meta"><span>{report.description}</span><strong>{formatHours(report.hours)}</strong></div>
+                <p>{report.employee} · {translateText(report.object)}</p>
+                <div className="report-meta"><span>{translateText(report.description)}</span><strong>{formatHours(report.hours)}</strong></div>
               </Link>
             ))
           ) : (
             <div className="empty-state">
-              <strong>Keine Berichte für diesen Tag</strong>
-              <span>Wählen Sie einen anderen Tag oder wechseln Sie den Monat.</span>
+              <strong>{t("Keine Berichte für diesen Tag")}</strong>
+              <span>{t("Wählen Sie einen anderen Tag oder wechseln Sie den Monat.")}</span>
             </div>
           )}
         </section>

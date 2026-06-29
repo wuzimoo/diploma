@@ -1,27 +1,7 @@
-const labels: Record<string, string> = {
-  open: "Eingereicht",
-  review: "In Prüfung",
-  approved: "Final freigegeben",
-  draft: "Entwurf",
-  submitted: "Beim Polier",
-  foreman_approved: "Bei der Verwaltung",
-  admin_approved: "Final freigegeben",
-  rejected: "Abgelehnt",
-  change_requested: "Nacharbeit",
-  active: "Aktiv",
-  planning: "In Planung",
-  archived: "Archiv",
-  done: "Abgeschlossen",
-  blocked: "Blockiert",
-  planned: "Geplant",
-  in_progress: "In Arbeit"
-};
-
-export function statusLabel(status: string) {
-  return labels[status] || status;
-}
+import { useI18n } from "../hooks/useI18n";
 
 export function StatusBadge({ status }: { status: string }) {
+  const { statusLabel } = useI18n();
   const tone =
     status === "approved" || status === "admin_approved" || status === "active" || status === "done"
       ? "success"

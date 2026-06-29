@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
 import { formatHours } from "../lib/format";
 import { api } from "../services/api";
@@ -14,6 +15,7 @@ function hours(start: string, end: string, pause: number) {
 
 export function CreateReportPage() {
   const navigate = useNavigate();
+  const { t, translateText } = useI18n();
   const { pushToast } = useToast();
   const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null);
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
@@ -39,27 +41,27 @@ export function CreateReportPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!form.work_description.trim() || form.work_description.trim().length < 5) {
-      setFormError("Bitte erfassen Sie eine aussagekraftige Arbeitsbeschreibung mit mindestens 5 Zeichen.");
+      setFormError(t("Bitte erfassen Sie eine aussagekraftige Arbeitsbeschreibung mit mindestens 5 Zeichen."));
       return;
     }
     if (!form.completed_volume) {
-      setFormError("Bitte geben Sie die ausgeführte Menge an.");
+      setFormError(t("Bitte geben Sie die ausgeführte Menge an."));
       return;
     }
     if (Number(form.completed_volume) <= 0) {
-      setFormError("Die ausgeführte Menge muss größer als 0 sein.");
+      setFormError(t("Die ausgeführte Menge muss größer als 0 sein."));
       return;
     }
     if (form.end_time <= form.start_time) {
-      setFormError("Die Endzeit muss nach der Startzeit liegen.");
+      setFormError(t("Die Endzeit muss nach der Startzeit liegen."));
       return;
     }
     if (form.break_minutes < 0) {
-      setFormError("Die Pause darf nicht negativ sein.");
+      setFormError(t("Die Pause darf nicht negativ sein."));
       return;
     }
     if (workedHours <= 0) {
-      setFormError("Die Arbeitszeit muss größer als 0 Stunden sein.");
+      setFormError(t("Die Arbeitszeit muss größer als 0 Stunden sein."));
       return;
     }
     setFormError("");
@@ -69,7 +71,12 @@ export function CreateReportPage() {
       employee_id: activeAssignment?.employee.id,
       work_plan_item_id: form.work_plan_item_id ? Number(form.work_plan_item_id) : null,
       completed_volume: form.completed_volume ? Number(form.completed_volume) : null,
-      media_note: mediaFiles.length ? `${mediaFiles.length} Datei(en): ${mediaFiles.map((file) => file.name).join(", ")}` : null,
+      media_note: mediaFiles.length
+        ? t(mediaFiles.length === 1 ? "{count} Datei: {files}" : "{count} Dateien: {files}", {
+            count: mediaFiles.length,
+            files: mediaFiles.map((file) => file.name).join(", "),
+          })
+        : null,
       worked_hours: workedHours,
       status: "submitted"
     });
@@ -81,40 +88,40 @@ export function CreateReportPage() {
         headers: { "Content-Type": "multipart/form-data" }
       });
     }));
-    pushToast({ tone: "success", title: "Bericht gesendet", description: "Der Tagesbericht wurde an den Polier zur Prüfung übergeben." });
+    pushToast({ tone: "success", title: t("Bericht gesendet"), description: t("Der Tagesbericht wurde an den Polier zur Prüfung übergeben.") });
     navigate(`/worker/reports/${response.data.id}`);
   }
 
   return (
     <>
       <header className="mobile-header">
-        <button className="back-link button-reset" onClick={() => navigate(-1)} type="button">Zurück zur Übersicht</button>
-        <h1>Tagesbericht erfassen</h1>
-        <p>Bitte prüfen Sie vor dem Absenden Zeiten, Menge und Beschreibung.</p>
+        <button className="back-link button-reset" onClick={() => navigate(-1)} type="button">{t("Zurück zur Übersicht")}</button>
+        <h1>{t("Tagesbericht erfassen")}</h1>
+        <p>{t("Bitte prüfen Sie vor dem Absenden Zeiten, Menge und Beschreibung.")}</p>
       </header>
       <main className="mobile-content">
         <form className="form-grid" onSubmit={submit}>
           <section className="locked-assignment">
-            <span>Zugewiesenes Projekt</span>
-            <strong>{activeAssignment?.construction_object?.name || "Kein Projekt zugewiesen"}</strong>
-            <p>{activeAssignment?.employee.first_name} {activeAssignment?.employee.last_name} · {activeAssignment?.crew?.name || "ohne Team"}</p>
+            <span>{t("Zugewiesenes Projekt")}</span>
+            <strong>{translateText(activeAssignment?.construction_object?.name) || t("Kein Projekt zugewiesen")}</strong>
+            <p>{activeAssignment?.employee.first_name} {activeAssignment?.employee.last_name} · {translateText(activeAssignment?.crew?.name) || t("ohne Team")}</p>
           </section>
-          <label className="field">Datum<input type="date" value={form.report_date} onChange={(e) => setForm({ ...form, report_date: e.target.value })} /></label>
-          <label className="field">Arbeitspaket<select value={form.work_plan_item_id} onChange={(e) => setForm({ ...form, work_plan_item_id: e.target.value })}>
-            {activeAssignment?.work_plan_items.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.completed_volume}/{item.planned_volume} {item.unit}</option>)}
+          <label className="field">{t("Datum")}<input type="date" value={form.report_date} onChange={(e) => setForm({ ...form, report_date: e.target.value })} /></label>
+          <label className="field">{t("Arbeitspaket")}<select value={form.work_plan_item_id} onChange={(e) => setForm({ ...form, work_plan_item_id: e.target.value })}>
+            {activeAssignment?.work_plan_items.map((item) => <option key={item.id} value={item.id}>{translateText(item.title)} · {item.completed_volume}/{item.planned_volume} {item.unit}</option>)}
           </select></label>
           <div className="field-row">
-            <label className="field">Start<input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
-            <label className="field">Ende<input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
+            <label className="field">{t("Start")}<input type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></label>
+            <label className="field">{t("Ende")}<input type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></label>
           </div>
-          <label className="field">Pause, Min.<input type="number" value={form.break_minutes} onChange={(e) => setForm({ ...form, break_minutes: Number(e.target.value) })} /></label>
-          <div className="hours-row"><span>Berechnete Arbeitszeit</span><strong>{formatHours(workedHours)}</strong></div>
-          <label className="field">Ausgeführte Menge<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="z. B. 12,5" /></label>
-          <label className="field">Arbeitsbeschreibung<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder="z. B. Kabeltrassen montiert, Hauptverteilung vorbereitet" /></label>
-          <label className="field">Fotos / Medien<input type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">Dateien werden gemeinsam mit dem Bericht hochgeladen und bleiben in der Berichtskarte sichtbar.</span></label>
+          <label className="field">{t("Pause, Min.")}<input type="number" value={form.break_minutes} onChange={(e) => setForm({ ...form, break_minutes: Number(e.target.value) })} /></label>
+          <div className="hours-row"><span>{t("Berechnete Arbeitszeit")}</span><strong>{formatHours(workedHours)}</strong></div>
+          <label className="field">{t("Ausgeführte Menge")}<input type="number" min="0" step="0.1" value={form.completed_volume} onChange={(e) => setForm({ ...form, completed_volume: e.target.value })} placeholder="z. B. 12,5" /></label>
+          <label className="field">{t("Arbeitsbeschreibung")}<textarea value={form.work_description} onChange={(e) => setForm({ ...form, work_description: e.target.value })} placeholder={t("z. B. Kabeltrassen montiert, Hauptverteilung vorbereitet")} /></label>
+          <label className="field">{t("Fotos / Medien")}<input type="file" accept="image/*,video/*,.pdf,.doc,.docx" multiple onChange={(event) => setMediaFiles(Array.from(event.target.files || []))} /><span className="helper">{t("Dateien werden gemeinsam mit dem Bericht hochgeladen und bleiben in der Berichtskarte sichtbar.")}</span></label>
           {formError ? <div className="form-error">{formError}</div> : null}
           {mediaFiles.length > 0 && <div className="file-list">{mediaFiles.map((file) => <span key={file.name}>{file.name}</span>)}</div>}
-          <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">Bericht einreichen</button>
+          <button className="btn btn-primary btn-block" disabled={!activeAssignment?.construction_object} type="submit">{t("Bericht einreichen")}</button>
         </form>
       </main>
     </>

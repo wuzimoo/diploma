@@ -1,29 +1,4 @@
-const LOCALE = "de-DE";
-
-const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat(LOCALE, {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-});
-
-const LONG_DATE_FORMATTER = new Intl.DateTimeFormat(LOCALE, {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat(LOCALE, {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat(LOCALE, {
-  month: "long",
-  year: "numeric",
-});
+let locale = "de-DE";
 
 function asDate(value: Date | string) {
   if (value instanceof Date) return value;
@@ -35,24 +10,41 @@ function asDate(value: Date | string) {
 }
 
 export function formatDate(value: Date | string) {
-  return SHORT_DATE_FORMATTER.format(asDate(value));
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(asDate(value));
 }
 
 export function formatLongDate(value: Date | string) {
-  return LONG_DATE_FORMATTER.format(asDate(value));
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(asDate(value));
 }
 
 export function formatDateTime(value: Date | string) {
-  return DATE_TIME_FORMATTER.format(asDate(value));
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(asDate(value));
 }
 
 export function formatMonthYear(value: Date | string) {
-  const label = MONTH_YEAR_FORMATTER.format(asDate(value));
+  const label = new Intl.DateTimeFormat(locale, {
+    month: "long",
+    year: "numeric",
+  }).format(asDate(value));
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export function formatNumber(value: number, fractionDigits = 0) {
-  return new Intl.NumberFormat(LOCALE, {
+  return new Intl.NumberFormat(locale, {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   }).format(value);
@@ -67,5 +59,20 @@ export function formatCurrency(value: number, fractionDigits = 0) {
 }
 
 export function reportCountLabel(count: number) {
+  if (locale === "en-US") {
+    return `${count} ${count === 1 ? "report" : "reports"}`;
+  }
+  if (locale === "el-GR") {
+    return `${count} ${count === 1 ? "αναφορά" : "αναφορές"}`;
+  }
   return `${count} ${count === 1 ? "Bericht" : "Berichte"}`;
+}
+
+export function setFormatLanguage(language: "de" | "en" | "el") {
+  locale =
+    language === "en"
+      ? "en-US"
+      : language === "el"
+        ? "el-GR"
+        : "de-DE";
 }

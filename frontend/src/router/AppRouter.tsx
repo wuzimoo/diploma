@@ -17,12 +17,14 @@ import { ReportReviewPage } from "../pages/ReportReviewPage";
 import { ReportsListPage } from "../pages/ReportsListPage";
 import { WorkerHomePage } from "../pages/WorkerHomePage";
 import { useAuth } from "../hooks/useAuth";
+import { useI18n } from "../hooks/useI18n";
 import { RoleCode } from "../types/api";
 
 function Protected({ children, allowedRoles }: { children: JSX.Element; allowedRoles?: RoleCode[] }) {
   const { user, loading } = useAuth();
+  const { t } = useI18n();
   if (loading) {
-    return <div className="loading-screen">BauPilot wird geladen...</div>;
+    return <div className="loading-screen">{t("BauPilot wird geladen...")}</div>;
   }
   if (!user) {
     return <Navigate to="/login" replace />;

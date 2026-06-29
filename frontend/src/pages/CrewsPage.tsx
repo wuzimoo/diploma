@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Archive, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { useI18n } from "../hooks/useI18n";
 import { StatusBadge } from "../components/StatusBadge";
 import { api } from "../services/api";
 import { ConstructionObject, Crew, CrewMember, Employee } from "../types/api";
@@ -22,6 +23,7 @@ function crewError(form: typeof crewFormDefaults) {
 }
 
 export function CrewsPage() {
+  const { t, translateText } = useI18n();
   const { pushToast } = useToast();
   const [crews, setCrews] = useState<Crew[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -72,7 +74,7 @@ export function CrewsPage() {
     });
     setForm(crewFormDefaults);
     setFormError("");
-    pushToast({ tone: "success", title: "Team angelegt", description: "Das neue Team wurde erstellt und ist fur die Einsatzplanung bereit." });
+    pushToast({ tone: "success", title: t("Team angelegt"), description: t("Das neue Team wurde erstellt und ist fur die Einsatzplanung bereit.") });
     load();
   }
 
@@ -83,7 +85,11 @@ export function CrewsPage() {
     const previousMembership = previousCrew?.members.find((member) => member.employee_id === employeeId && member.is_active);
     if (previousCrew && previousMembership) {
       const confirmed = window.confirm(
-        `${employee?.first_name || "Mitarbeiter"} ${employee?.last_name || ""} ist bereits dem Team ${previousCrew.name} zugeordnet. In ${currentCrew?.name || "das neue Team"} verschieben?`,
+        t("{name} ist bereits dem Team {team} zugeordnet. In {target} verschieben?", {
+          name: `${employee?.first_name || t("Mitarbeiter")} ${employee?.last_name || ""}`.trim(),
+          team: previousCrew.name,
+          target: currentCrew?.name || t("das neue Team"),
+        }),
       );
       if (!confirmed) return;
       await api.patch(`/crew-members/${previousMembership.id}`, { is_active: false });
@@ -99,22 +105,22 @@ export function CrewsPage() {
       setPickerCrewId(null);
       pushToast({
         tone: "success",
-        title: previousCrew ? "Mitarbeiter verschoben" : "Mitarbeiter hinzugefugt",
-        description: previousCrew ? "Die bisherige aktive Zuordnung wurde geschlossen." : "Das Team wurde aktualisiert.",
+        title: previousCrew ? t("Mitarbeiter verschoben") : t("Mitarbeiter hinzugefugt"),
+        description: previousCrew ? t("Die bisherige aktive Zuordnung wurde geschlossen.") : t("Das Team wurde aktualisiert."),
       });
       load();
     } catch (error) {
       const detail = typeof error === "object" && error && "response" in error
         ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
         : undefined;
-      pushToast({ tone: "error", title: "Mitarbeiter konnte nicht hinzugefugt werden", description: detail || "Bitte nach dem Aktualisieren erneut versuchen." });
+      pushToast({ tone: "error", title: t("Mitarbeiter konnte nicht hinzugefugt werden"), description: detail || t("Bitte nach dem Aktualisieren erneut versuchen.") });
     }
   }
 
   async function removeMember(member: CrewMember) {
-    if (!window.confirm(`${member.employee?.first_name} ${member.employee?.last_name} aus dem Team entfernen?`)) return;
+    if (!window.confirm(t("{name} aus dem Team entfernen?", { name: `${member.employee?.first_name} ${member.employee?.last_name}` }))) return;
     await api.patch(`/crew-members/${member.id}`, { is_active: false });
-    pushToast({ tone: "info", title: "Mitarbeiter entfernt", description: "Die Person wurde nur aus dem aktuellen Team gelost." });
+    pushToast({ tone: "info", title: t("Mitarbeiter entfernt"), description: t("Die Person wurde nur aus dem aktuellen Team gelost.") });
     load();
   }
 
@@ -141,15 +147,15 @@ export function CrewsPage() {
       foreman_employee_id: Number(editForm.foreman_employee_id),
       current_object_id: Number(editForm.current_object_id),
     });
-    pushToast({ tone: "success", title: "Team aktualisiert", description: "Die Änderungen wurden gespeichert." });
+    pushToast({ tone: "success", title: t("Team aktualisiert"), description: t("Die Änderungen wurden gespeichert.") });
     setEditingCrew(null);
     load();
   }
 
   async function archiveCrew(crew: Crew) {
-    if (!window.confirm(`Team ${crew.name} archivieren?`)) return;
+    if (!window.confirm(t("Team {name} archivieren?", { name: crew.name }))) return;
     await api.patch(`/crews/${crew.id}`, { status: "archived" });
-    pushToast({ tone: "info", title: "Team archiviert", description: "Das Team bleibt in der Historie, erscheint aber nicht mehr im aktiven Betrieb." });
+    pushToast({ tone: "info", title: t("Team archiviert"), description: t("Das Team bleibt in der Historie, erscheint aber nicht mehr im aktiven Betrieb.") });
     if (editingCrew?.id === crew.id) setEditingCrew(null);
     load();
   }
@@ -158,17 +164,17 @@ export function CrewsPage() {
     <section className="stack">
       <section className="table-card stack">
         <div>
-          <h2 className="section-title">Teams</h2>
-          <p className="section-subtitle">Teams zusammenstellen, Poliere zuweisen und Projekte ohne Systemwechsel umplanen.</p>
+          <h2 className="section-title">{t("Teams")}</h2>
+          <p className="section-subtitle">{t("Teams zusammenstellen, Poliere zuweisen und Projekte ohne Systemwechsel umplanen.")}</p>
         </div>
         <form className="inline-form" onSubmit={createCrew}>
-          <label className="field">Teamname<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Team Berlin Ost" required /></label>
-          <label className="field">Schwerpunkt<input value={form.specialization} onChange={(event) => setForm({ ...form, specialization: event.target.value })} required /></label>
-          <label className="field">Polier<select value={form.foreman_employee_id} onChange={(event) => setForm({ ...form, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
-          <label className="field">Aktuelles Projekt<select value={form.current_object_id} onChange={(event) => setForm({ ...form, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
-          <button className="btn btn-primary" type="submit">Team anlegen</button>
+          <label className="field">{t("Teamname")}<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Team Berlin Ost" required /></label>
+          <label className="field">{t("Schwerpunkt")}<input value={form.specialization} onChange={(event) => setForm({ ...form, specialization: event.target.value })} required /></label>
+          <label className="field">{t("Polier")}<select value={form.foreman_employee_id} onChange={(event) => setForm({ ...form, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
+          <label className="field">{t("Aktuelles Projekt")}<select value={form.current_object_id} onChange={(event) => setForm({ ...form, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{translateText(object.name)}</option>)}</select></label>
+          <button className="btn btn-primary" type="submit">{t("Team anlegen")}</button>
         </form>
-        {formError ? <div className="form-error">{formError}</div> : null}
+        {formError ? <div className="form-error">{t(formError)}</div> : null}
       </section>
 
       <div className="cards-grid">
@@ -177,15 +183,15 @@ export function CrewsPage() {
           const availableEmployees = employees.filter((employee) => !members.some((member) => member.employee_id === employee.id));
           return (
             <article className="entity-card crew-card" key={crew.id}>
-              <div className="report-item-top"><strong>{crew.name}</strong><StatusBadge status={crew.status} /></div>
-              <span>{crew.specialization}</span>
-              <p>Projekt: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{crew.current_object.name}</Link> : "nicht zugeordnet"}</p>
-              <p>Polier: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : "offen"}</p>
+              <div className="report-item-top"><strong>{translateText(crew.name)}</strong><StatusBadge status={crew.status} /></div>
+              <span>{translateText(crew.specialization)}</span>
+              <p>{t("Projekt")}: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{translateText(crew.current_object.name)}</Link> : t("nicht zugeordnet")}</p>
+              <p>{t("Polier")}: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : t("offen")}</p>
               <div className="member-list">
                 {members.map((member) => (
                   <span className="member-pill" key={member.id}>
-                    <span>{member.employee?.first_name} {member.employee?.last_name} · {member.role_in_crew}</span>
-                    <button className="member-remove" type="button" aria-label={`${member.employee?.first_name} ${member.employee?.last_name} entfernen`} onClick={() => removeMember(member)}>
+                    <span>{member.employee?.first_name} {member.employee?.last_name} · {translateText(member.role_in_crew)}</span>
+                    <button className="member-remove" type="button" aria-label={t("{name} aus dem Team entfernen?", { name: `${member.employee?.first_name} ${member.employee?.last_name}` })} onClick={() => removeMember(member)}>
                       <Trash2 size={14} />
                     </button>
                   </span>
@@ -193,27 +199,27 @@ export function CrewsPage() {
               </div>
               <div className="crew-card-actions">
                 <div className="card-actions">
-                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(crew)}><Pencil size={16} />Bearbeiten</button>
-                  {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />Archivieren</button> : null}
+                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(crew)}><Pencil size={16} />{t("Bearbeiten")}</button>
+                  {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />{t("Archivieren")}</button> : null}
                 </div>
                 <div className="crew-inline-picker-toggle">
-                  <span className="crew-members-label">Teammitglieder</span>
-                  <button className="icon-btn" type="button" aria-label="Mitarbeiter hinzufugen" onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
+                  <span className="crew-members-label">{t("Teammitglieder")}</span>
+                  <button className="icon-btn" type="button" aria-label={t("Mitarbeiter hinzufugen")} onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
                     {pickerCrewId === crew.id ? <X size={18} /> : <Plus size={18} />}
                   </button>
                 </div>
               </div>
               {pickerCrewId === crew.id ? (
                 <div className="member-picker">
-                  <strong>Mitarbeiter hinzufugen</strong>
+                  <strong>{t("Mitarbeiter hinzufugen")}</strong>
                   <div className="member-picker-grid">
                     {availableEmployees.map((employee) => (
                       <button className="member-picker-card" key={employee.id} type="button" onClick={() => addMember(crew.id, employee.id)}>
                         <strong>{employee.first_name} {employee.last_name}</strong>
-                        <span>{employee.position}</span>
+                        <span>{translateText(employee.position)}</span>
                       </button>
                     ))}
-                    {availableEmployees.length === 0 ? <p className="helper">Alle verfügbaren Mitarbeiter sind diesem Team bereits zugeordnet.</p> : null}
+                    {availableEmployees.length === 0 ? <p className="helper">{t("Alle verfügbaren Mitarbeiter sind diesem Team bereits zugeordnet.")}</p> : null}
                   </div>
                 </div>
               ) : null}
@@ -227,22 +233,22 @@ export function CrewsPage() {
           <section className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="section-head">
               <div>
-                <h3 className="section-title">Team bearbeiten</h3>
-                <p className="section-subtitle">Name, Schwerpunkt, Polier und aktuelles Projekt anpassen.</p>
+                <h3 className="section-title">{t("Team bearbeiten")}</h3>
+                <p className="section-subtitle">{t("Name, Schwerpunkt, Polier und aktuelles Projekt anpassen.")}</p>
               </div>
-              <button className="icon-btn" type="button" aria-label="Schliessen" onClick={() => setEditingCrew(null)}><X size={18} /></button>
+              <button className="icon-btn" type="button" aria-label={t("Schliessen")} onClick={() => setEditingCrew(null)}><X size={18} /></button>
             </div>
             <form className="stack" onSubmit={saveCrew}>
-              <label className="field">Teamname<input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required /></label>
-              <label className="field">Schwerpunkt<input value={editForm.specialization} onChange={(event) => setEditForm({ ...editForm, specialization: event.target.value })} required /></label>
+              <label className="field">{t("Teamname")}<input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required /></label>
+              <label className="field">{t("Schwerpunkt")}<input value={editForm.specialization} onChange={(event) => setEditForm({ ...editForm, specialization: event.target.value })} required /></label>
               <div className="field-row">
-                <label className="field">Polier<select value={editForm.foreman_employee_id} onChange={(event) => setEditForm({ ...editForm, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
-                <label className="field">Projekt<select value={editForm.current_object_id} onChange={(event) => setEditForm({ ...editForm, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}</select></label>
+                <label className="field">{t("Polier")}<select value={editForm.foreman_employee_id} onChange={(event) => setEditForm({ ...editForm, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
+                <label className="field">{t("Projekt")}<select value={editForm.current_object_id} onChange={(event) => setEditForm({ ...editForm, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{translateText(object.name)}</option>)}</select></label>
               </div>
-              {editError ? <div className="form-error">{editError}</div> : null}
+              {editError ? <div className="form-error">{t(editError)}</div> : null}
               <div className="modal-actions">
-                <button className="btn btn-secondary" type="button" onClick={() => setEditingCrew(null)}>Abbrechen</button>
-                <button className="btn btn-primary" type="submit">Änderungen speichern</button>
+                <button className="btn btn-secondary" type="button" onClick={() => setEditingCrew(null)}>{t("Abbrechen")}</button>
+                <button className="btn btn-primary" type="submit">{t("Änderungen speichern")}</button>
               </div>
             </form>
           </section>

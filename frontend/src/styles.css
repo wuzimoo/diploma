@@ -139,6 +139,60 @@ h3,
   border: 1px solid rgba(54, 83, 107, 0.12);
 }
 
+.login-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.language-switcher-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.language-switcher-buttons {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(225, 232, 238, 0.72);
+  border: 1px solid rgba(54, 83, 107, 0.12);
+}
+
+.language-switcher-buttons button {
+  border: 0;
+  background: transparent;
+  color: var(--muted-strong);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 7px 10px;
+  border-radius: 999px;
+}
+
+.language-switcher-buttons button.is-active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 6px 18px rgba(24, 36, 47, 0.08);
+}
+
+.login-language-switcher {
+  justify-content: flex-end;
+}
+
 .demo-logins {
   display: flex;
   gap: 8px;
@@ -221,7 +275,7 @@ h3,
   border-radius: 28px;
   overflow: hidden;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   box-shadow: 0 22px 52px rgba(15, 23, 42, 0.12);
   backdrop-filter: blur(14px);
 }
@@ -263,6 +317,21 @@ h3,
   overflow-y: auto;
   overscroll-behavior: contain;
   align-content: start;
+}
+
+.mobile-language-bar {
+  display: flex;
+  justify-content: center;
+  padding: 10px 14px 0;
+}
+
+.mobile-language-switcher {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.mobile-language-switcher .language-switcher-buttons {
+  margin-left: auto;
 }
 
 .desktop-page {
@@ -316,6 +385,10 @@ h3,
   border-radius: 14px;
   background: rgba(248, 250, 252, 0.9);
   border: 1px solid rgba(219, 227, 238, 0.85);
+}
+
+.desktop-language-switcher {
+  margin-left: auto;
 }
 
 .top-links a,
