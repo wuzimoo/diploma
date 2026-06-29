@@ -134,7 +134,7 @@ export function AdminDashboardPage() {
           {analytics?.object_progress.map((item) => (
             <Link className="entity-card object-progress-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
               <div className="object-progress-head">
-                <div className="stack compact-stack">
+                <div className="object-progress-title">
                   <span className="eyebrow">{t("Projekt")}</span>
                   <strong>{translateText(item.object)}</strong>
                 </div>
