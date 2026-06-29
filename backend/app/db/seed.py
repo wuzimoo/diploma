@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 
 from sqlalchemy import or_, select
 
@@ -285,7 +285,22 @@ def _normalize_existing_demo_records(
         for comment in report.comments:
             comment.body = normalize_report_comment(comment.body)
         seen_events: set[tuple[str, str, str | None]] = set()
-        for event in sorted(report.events, key=lambda current: (current.created_at, current.id)):
+        fallback_event_time = (
+            report.admin_reviewed_at
+            or report.foreman_reviewed_at
+            or report.created_at
+            or datetime.combine(report.report_date, report.end_time, tzinfo=timezone.utc)
+        )
+        for event in sorted(
+            report.events,
+            key=lambda current: (
+                current.created_at is None,
+                current.created_at or fallback_event_time,
+                current.id,
+            ),
+        ):
+            if event.created_at is None:
+                event.created_at = fallback_event_time
             normalized_title = normalize_report_event_title(event.title, event.event_type, report.status if event.event_type == "status_changed" else None)
             normalized_body = normalize_report_event_body(
                 event.body,
