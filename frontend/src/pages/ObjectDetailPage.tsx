@@ -168,7 +168,7 @@ export function ObjectDetailPage() {
 
       <div className="summary-grid-desktop">
         <article className="summary-tile"><p>{t("Mitarbeiter")}</p><strong>{summary.employees.length}</strong></article>
-        <article className="summary-tile"><p>{t("Teams")}</p><strong>{summary.crews.length}</strong></article>
+        <article className="summary-tile"><p>{t("Kolonnen")}</p><strong>{summary.crews.length}</strong></article>
         <article className="summary-tile"><p>{t("Stunden")}</p><strong>{formatHours(summary.total_hours, 1)}</strong></article>
         <article className="summary-tile"><p>{t("Kosten")}</p><strong>{formatCurrency(summary.expense_total)}</strong></article>
       </div>

@@ -164,7 +164,7 @@ export function CrewsPage() {
     <section className="stack">
       <section className="table-card stack">
         <div>
-          <h2 className="section-title">{t("Teams")}</h2>
+          <h2 className="section-title">{t("Kolonnen")}</h2>
           <p className="section-subtitle">{t("Teams zusammenstellen, Poliere zuweisen und Projekte ohne Systemwechsel umplanen.")}</p>
         </div>
         <form className="inline-form" onSubmit={createCrew}>

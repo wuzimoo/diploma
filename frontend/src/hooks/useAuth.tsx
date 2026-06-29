@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
-import { api, tokenStorageKey } from "../services/api";
+import { api, authInvalidEvent, clearStoredAuth, tokenStorageKey } from "../services/api";
 import { User } from "../types/api";
 
 interface AuthContextValue {
@@ -25,8 +25,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api
       .get<User>("/auth/me")
       .then((response) => setUser(response.data))
-      .catch(() => localStorage.removeItem(tokenStorageKey))
+      .catch(() => {
+        clearStoredAuth(false);
+        setUser(null);
+      })
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    function handleAuthInvalid() {
+      setUser(null);
+      setLoading(false);
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key === tokenStorageKey && !event.newValue) {
+        handleAuthInvalid();
+      }
+    }
+
+    window.addEventListener(authInvalidEvent, handleAuthInvalid);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(authInvalidEvent, handleAuthInvalid);
+      window.removeEventListener("storage", handleStorage);
+    };
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -34,19 +57,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       async login(email: string, password: string) {
+        clearStoredAuth(false);
+        setUser(null);
         const form = new URLSearchParams();
         form.set("username", email);
         form.set("password", password);
-        const tokenResponse = await api.post("/auth/login", form, {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" }
-        });
-        localStorage.setItem(tokenStorageKey, tokenResponse.data.access_token);
-        const me = await api.get<User>("/auth/me");
-        setUser(me.data);
-        return me.data;
+        try {
+          const tokenResponse = await api.post("/auth/login", form, {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+          });
+          localStorage.setItem(tokenStorageKey, tokenResponse.data.access_token);
+          const me = await api.get<User>("/auth/me");
+          setUser(me.data);
+          return me.data;
+        } catch (error) {
+          clearStoredAuth(false);
+          setUser(null);
+          throw error;
+        }
       },
       logout() {
-        localStorage.removeItem(tokenStorageKey);
+        clearStoredAuth(false);
         setUser(null);
       }
     }),
@@ -63,4 +94,3 @@ export function useAuth() {
   }
   return value;
 }
-

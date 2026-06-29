@@ -81,6 +81,7 @@ from app.utils.demo_text import (
     normalize_crew_name,
     normalize_media_note,
     normalize_name_part,
+    normalize_object_name,
     normalize_photo_caption,
     normalize_position,
     normalize_report_comment,
@@ -572,7 +573,9 @@ def list_objects(skip: int = 0, limit: int = 50, search: str | None = None, city
 
 @router.post("/objects", response_model=ConstructionObjectOut, status_code=status.HTTP_201_CREATED, tags=["objects"])
 def create_object(payload: ConstructionObjectCreate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> ConstructionObject:
-    return create_item(db, ConstructionObject, payload.model_dump())
+    data = payload.model_dump()
+    data["name"] = normalize_object_name(data.get("name"))
+    return create_item(db, ConstructionObject, data)
 
 
 @router.get("/objects/{item_id}", response_model=ConstructionObjectOut, tags=["objects"])
@@ -582,7 +585,10 @@ def get_object(item_id: int, db: Session = Depends(get_db), _: User = Depends(ge
 
 @router.patch("/objects/{item_id}", response_model=ConstructionObjectOut, tags=["objects"])
 def update_object(item_id: int, payload: ConstructionObjectUpdate, db: Session = Depends(get_db), _: User = Depends(require_roles("admin", "foreman"))) -> ConstructionObject:
-    return update_item(db, get_or_404(db, ConstructionObject, item_id), payload.model_dump(exclude_unset=True))
+    data = payload.model_dump(exclude_unset=True)
+    if "name" in data and data["name"] is not None:
+        data["name"] = normalize_object_name(data["name"])
+    return update_item(db, get_or_404(db, ConstructionObject, item_id), data)
 
 
 @router.delete("/objects/{item_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["objects"])

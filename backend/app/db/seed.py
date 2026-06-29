@@ -26,6 +26,7 @@ from app.utils.demo_text import (
     normalize_crew_name,
     normalize_media_note,
     normalize_name_part,
+    normalize_object_name,
     normalize_photo_caption,
     normalize_position,
     normalize_report_comment,
@@ -161,6 +162,9 @@ def _normalize_existing_demo_records(
         leon.id: (berlin_ost.id, elektro.id, "Sanitärinstallateur"),
         jonas.id: (potsdam.id, montage.id, "Monteur"),
     }
+
+    for construction_object in db.scalars(select(ConstructionObject)).all():
+        construction_object.name = normalize_object_name(construction_object.name) or construction_object.name
 
     for crew in db.scalars(select(Crew)).all():
         crew.name = normalize_crew_name(crew.name) or crew.name

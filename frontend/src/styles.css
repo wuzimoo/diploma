@@ -379,16 +379,35 @@ h3,
 .top-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
+  flex: 1 1 720px;
   padding: 6px;
   border-radius: 14px;
   background: rgba(248, 250, 252, 0.9);
   border: 1px solid rgba(219, 227, 238, 0.85);
 }
 
-.desktop-language-switcher {
+.top-links-primary,
+.top-links-utility {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.top-links-primary {
+  min-width: 0;
+}
+
+.top-links-utility {
+  justify-content: flex-end;
   margin-left: auto;
+}
+
+.desktop-language-switcher {
+  margin-left: 0;
 }
 
 .top-links a,

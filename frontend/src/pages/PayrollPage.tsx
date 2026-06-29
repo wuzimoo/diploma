@@ -17,7 +17,7 @@ function toIsoDate(value: Date) {
 function payrollRange(anchor: Date) {
   return {
     start: toIsoDate(new Date(anchor.getFullYear(), anchor.getMonth() - 1, 21)),
-    end: toIsoDate(new Date(anchor.getFullYear(), anchor.getMonth(), 20)),
+    end: toIsoDate(new Date(anchor.getFullYear(), anchor.getMonth(), 22)),
   };
 }
 
@@ -34,7 +34,7 @@ export function PayrollPage() {
   const [mode, setMode] = useState<"month" | "payroll" | "custom">("payroll");
   const [anchorMonth, setAnchorMonth] = useState("2026-05");
   const [customStart, setCustomStart] = useState("2026-04-21");
-  const [customEnd, setCustomEnd] = useState("2026-05-20");
+  const [customEnd, setCustomEnd] = useState("2026-05-22");
   const [summary, setSummary] = useState<PayrollSummary | null>(null);
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<number | null>(null);
 
@@ -72,12 +72,12 @@ export function PayrollPage() {
         <div className="section-head">
           <div>
             <h2 className="section-title">{t("Lohnübersicht")}</h2>
-            <p className="section-subtitle">{t("Auswertung nach Kalendermonat, Lohnperiode 21-20 oder freiem Zeitraum.")}</p>
+            <p className="section-subtitle">{t("Auswertung nach Kalendermonat, Lohnperiode 21-22 oder freiem Zeitraum.")}</p>
           </div>
           <button className="btn btn-secondary" type="button" onClick={exportCsv}><Download size={16} />{t("CSV export")}</button>
         </div>
         <div className="filters payroll-filters">
-          <label className="field">{t("Modus")}<select value={mode} onChange={(event) => setMode(event.target.value as "month" | "payroll" | "custom")}><option value="payroll">{t("Lohnperiode 21-20")}</option><option value="month">{t("Kalendermonat")}</option><option value="custom">{t("Freier Zeitraum")}</option></select></label>
+          <label className="field">{t("Modus")}<select value={mode} onChange={(event) => setMode(event.target.value as "month" | "payroll" | "custom")}><option value="payroll">{t("Lohnperiode 21-22")}</option><option value="month">{t("Kalendermonat")}</option><option value="custom">{t("Freier Zeitraum")}</option></select></label>
           <label className="field">{t("Monat")}<input type="month" value={anchorMonth} onChange={(event) => setAnchorMonth(event.target.value)} /></label>
           {mode === "custom" ? <label className="field">{t("Start")}<input type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} /></label> : <div className="summary-card compact-summary"><span className="text-muted">{t("Start")}</span><strong>{formatDate(range.start)}</strong></div>}
           {mode === "custom" ? <label className="field">{t("Ende")}<input type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} /></label> : <div className="summary-card compact-summary"><span className="text-muted">{t("Ende")}</span><strong>{formatDate(range.end)}</strong></div>}

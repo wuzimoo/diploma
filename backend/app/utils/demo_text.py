@@ -31,6 +31,13 @@ CREW_NAME_MAP = {
     "Berlin 2": "Team Berlin Mitte",
 }
 
+OBJECT_NAME_MAP = {
+    "Munchen ost - 12": "München Ost - 12",
+    "Munchen Ost - 12": "München Ost - 12",
+    "Muenchen ost - 12": "München Ost - 12",
+    "Muenchen Ost - 12": "München Ost - 12",
+}
+
 WORK_PLAN_MAP = {
     "Монтаж кабельних трас секція C": (
         "Kabeltrassen Montage Abschnitt C",
@@ -143,6 +150,25 @@ def normalize_crew_name(value: str | None) -> str | None:
     if not cleaned:
         return cleaned
     return CREW_NAME_MAP.get(cleaned, cleaned)
+
+
+def normalize_object_name(value: str | None) -> str | None:
+    cleaned = normalize_whitespace(value)
+    if not cleaned:
+        return cleaned
+    cleaned = OBJECT_NAME_MAP.get(cleaned, cleaned)
+    replacements = {
+        "muenchen": "München",
+        "munchen": "München",
+        "ost": "Ost",
+        "west": "West",
+        "nord": "Nord",
+        "sud": "Süd",
+        "sued": "Süd",
+    }
+    for source, target in replacements.items():
+        cleaned = re.sub(rf"\b{source}\b", target, cleaned, flags=re.IGNORECASE)
+    return cleaned
 
 
 def normalize_work_plan_fields(title: str, description: str | None, unit: str | None) -> tuple[str, str | None, str | None]:
