@@ -35,34 +35,61 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <section className="login-card">
-        <div className="login-head-row">
-          <span className="brand-chip">{t(APP_LOGIN_CHIP)}</span>
-          <LanguageSwitcher className="login-language-switcher" />
-        </div>
-        <h1>{t(APP_LOGIN_HEADLINE)}</h1>
-        <p><strong>{APP_NAME}</strong> {t("Bautagesberichte, Projektsteuerung und Freigaben in einer ruhigen Demo fur Bauunternehmen zusammen.")}</p>
-        <p>{t(APP_LOGIN_COPY)}</p>
-        <form className="form-grid" onSubmit={submit}>
-          <label className="field">
-            {t("Email")}
-            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
-          </label>
-          <label className="field">
-            {t("Passwort")}
-            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
-          </label>
-          {error && <p className="form-error">{error}</p>}
-          <button className="btn btn-primary btn-block" disabled={loading} type="submit">
-            {loading ? t("Anmeldung...") : t("Anmelden")}
-          </button>
-        </form>
-        <div className="demo-logins">
-          <button type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>{t("Admin")}</button>
-          <button type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>{t("Polier")}</button>
-          <button type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>{t("Mitarbeiter")}</button>
-        </div>
-      </section>
+      <div className="login-layout">
+        <section className="login-showcase">
+          <div className="login-head-row">
+            <span className="brand-chip">{t(APP_LOGIN_CHIP)}</span>
+            <LanguageSwitcher className="login-language-switcher" />
+          </div>
+          <div className="login-showcase-copy">
+            <p className="eyebrow">{APP_NAME} · Design V02</p>
+            <h1>{t("Zentrale Baustellensteuerung für Berichte, Teams und Freigaben.")}</h1>
+            <p><strong>{APP_NAME}</strong> {t("Bautagesberichte, Projektsteuerung und Freigaben in einer ruhigen Demo fur Bauunternehmen zusammen.")}</p>
+            <p>{t(APP_LOGIN_COPY)}</p>
+          </div>
+          <div className="login-showcase-grid">
+            <article className="login-showcase-card">
+              <span>{t("Arbeitsbereich")}</span>
+              <strong>{t("Berichte, Projekte und Payroll in einem Flow")}</strong>
+            </article>
+            <article className="login-showcase-card">
+              <span>{t("3 Sprachen aktiv")}</span>
+              <strong>{t("Deutsch, English und Ελληνικά")}</strong>
+            </article>
+            <article className="login-showcase-card">
+              <span>{t("Rollenbasiert")}</span>
+              <strong>{t("Admin, Polier und Mitarbeiter mit eigenem Setup")}</strong>
+            </article>
+          </div>
+        </section>
+
+        <section className="login-card">
+          <div className="stack compact-stack">
+            <span className="eyebrow">{t("Sicherer Zugang")}</span>
+            <h2>{t(APP_LOGIN_HEADLINE)}</h2>
+            <p>{t("Demo-Zugänge für Büro, Polier und Baustelle wechseln.")}</p>
+          </div>
+          <form className="form-grid" onSubmit={submit}>
+            <label className="field">
+              {t("Email")}
+              <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
+            </label>
+            <label className="field">
+              {t("Passwort")}
+              <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
+            </label>
+            {error && <p className="form-error">{error}</p>}
+            <button className="btn btn-primary btn-block" disabled={loading} type="submit">
+              {loading ? t("Anmeldung...") : t("Anmelden")}
+            </button>
+          </form>
+          <div className="demo-logins">
+            <button type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>{t("Admin")}</button>
+            <button type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>{t("Polier")}</button>
+            <button type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>{t("Mitarbeiter")}</button>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

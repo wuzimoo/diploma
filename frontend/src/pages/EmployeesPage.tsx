@@ -222,13 +222,27 @@ export function EmployeesPage() {
           {employees.map((employee) => (
             <article className="entity-card employee-card" key={employee.id}>
               <div className="employee-card-header">
-                <strong>{employee.first_name} {employee.last_name}</strong>
-                <span className="employee-card-role">{translateText(employee.position)}</span>
+                <div className="stack compact-stack">
+                  <strong>{employee.first_name} {employee.last_name}</strong>
+                  <span className="employee-card-role">{translateText(employee.position)}</span>
+                </div>
+                <span className="badge badge-neutral">{employee.status === "active" ? t("Aktiv") : t("Archiv")}</span>
               </div>
-              <p>{employee.phone || t("Keine Telefonnummer hinterlegt")}</p>
-              <small>EUR {employee.hourly_rate}/h · {employee.status === "active" ? t("aktiv") : t("archiviert")}</small>
+              <div className="employee-card-data">
+                <div className="employee-data-line">
+                  <span>{t("Telefon")}</span>
+                  <strong>{employee.phone || t("Keine Telefonnummer hinterlegt")}</strong>
+                </div>
+                <div className="employee-data-line">
+                  <span>EUR/h</span>
+                  <strong>{employee.hourly_rate}</strong>
+                </div>
+              </div>
               <div className="employee-access-row">
-                <ShieldCheck size={16} />
+                <div className="employee-access-head">
+                  <ShieldCheck size={16} />
+                  <strong>{t("Systemzugang")}</strong>
+                </div>
                 <span>{employee.user ? `${employee.user.email} · ${translateText(employee.user.role.name)} · ${employee.user.is_active ? t("aktiv") : t("deaktiviert")}` : t("Kein Zugang angelegt")}</span>
               </div>
               <div className="card-actions">

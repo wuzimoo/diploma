@@ -185,28 +185,34 @@ export function CrewsPage() {
             <article className="entity-card crew-card" key={crew.id}>
               <div className="report-item-top"><strong>{translateText(crew.name)}</strong><StatusBadge status={crew.status} /></div>
               <span>{translateText(crew.specialization)}</span>
-              <p>{t("Projekt")}: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{translateText(crew.current_object.name)}</Link> : t("nicht zugeordnet")}</p>
-              <p>{t("Polier")}: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : t("offen")}</p>
-              <div className="member-list">
-                {members.map((member) => (
-                  <span className="member-pill" key={member.id}>
-                    <span>{member.employee?.first_name} {member.employee?.last_name} · {translateText(member.role_in_crew)}</span>
-                    <button className="member-remove" type="button" aria-label={t("{name} aus dem Team entfernen?", { name: `${member.employee?.first_name} ${member.employee?.last_name}` })} onClick={() => removeMember(member)}>
-                      <Trash2 size={14} />
-                    </button>
-                  </span>
-                ))}
+              <div className="crew-meta-grid">
+                <p>{t("Projekt")}: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{translateText(crew.current_object.name)}</Link> : t("nicht zugeordnet")}</p>
+                <p>{t("Polier")}: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : t("offen")}</p>
               </div>
-              <div className="crew-card-actions">
-                <div className="card-actions">
-                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(crew)}><Pencil size={16} />{t("Bearbeiten")}</button>
-                  {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />{t("Archivieren")}</button> : null}
-                </div>
+              <div className="crew-member-stack">
                 <div className="crew-inline-picker-toggle">
                   <span className="crew-members-label">{t("Teammitglieder")}</span>
                   <button className="icon-btn" type="button" aria-label={t("Mitarbeiter hinzufugen")} onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
                     {pickerCrewId === crew.id ? <X size={18} /> : <Plus size={18} />}
                   </button>
+                </div>
+                {members.map((member) => (
+                  <div className="crew-member-row" key={member.id}>
+                    <div className="crew-member-copy">
+                      <strong>{member.employee?.first_name} {member.employee?.last_name}</strong>
+                      <span>{translateText(member.role_in_crew)}</span>
+                    </div>
+                    <button className="member-remove" type="button" aria-label={t("{name} aus dem Team entfernen?", { name: `${member.employee?.first_name} ${member.employee?.last_name}` })} onClick={() => removeMember(member)}>
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                {members.length === 0 ? <p className="helper">{t("Noch keine Teammitglieder hinterlegt")}</p> : null}
+              </div>
+              <div className="crew-card-actions">
+                <div className="card-actions">
+                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(crew)}><Pencil size={16} />{t("Bearbeiten")}</button>
+                  {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />{t("Archivieren")}</button> : null}
                 </div>
               </div>
               {pickerCrewId === crew.id ? (

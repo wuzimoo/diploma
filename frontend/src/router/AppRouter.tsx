@@ -15,6 +15,7 @@ import { PayrollPage } from "../pages/PayrollPage";
 import { ReportDetailsPage } from "../pages/ReportDetailsPage";
 import { ReportReviewPage } from "../pages/ReportReviewPage";
 import { ReportsListPage } from "../pages/ReportsListPage";
+import { SettingsPage } from "../pages/SettingsPage";
 import { WorkerHomePage } from "../pages/WorkerHomePage";
 import { useAuth } from "../hooks/useAuth";
 import { useI18n } from "../hooks/useI18n";
@@ -44,6 +45,7 @@ export function AppRouter() {
         <Route path="reports/new" element={<CreateReportPage />} />
         <Route path="reports/:id" element={<ReportDetailsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="settings" element={<SettingsPage mobile />} />
         <Route path="more" element={<MorePage />} />
       </Route>
       <Route path="/admin" element={<Protected allowedRoles={["admin", "foreman"]}><AdminLayout /></Protected>}>
@@ -56,6 +58,7 @@ export function AppRouter() {
         <Route path="objects" element={<ObjectsPage />} />
         <Route path="objects/:id" element={<ObjectDetailPage />} />
         <Route path="payroll" element={<Protected allowedRoles={["admin"]}><PayrollPage /></Protected>} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
