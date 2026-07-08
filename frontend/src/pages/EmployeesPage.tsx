@@ -218,34 +218,28 @@ export function EmployeesPage() {
             <strong>{t("{count} aktive Konten", { count: employees.filter((employee) => employee.user?.is_active).length })}</strong>
           </div>
         </div>
-        <div className="cards-grid">
+        <div className="employee-list">
           {employees.map((employee) => (
-            <article className="entity-card employee-card" key={employee.id}>
-              <div className="employee-card-header">
-                <div className="stack compact-stack">
+            <article className="employee-list-row" key={employee.id}>
+              <div className="employee-list-main">
+                <div className="employee-list-title">
                   <strong>{employee.first_name} {employee.last_name}</strong>
                   <span className="employee-card-role">{translateText(employee.position)}</span>
                 </div>
-                <span className="badge badge-neutral">{employee.status === "active" ? t("Aktiv") : t("Archiv")}</span>
-              </div>
-              <div className="employee-card-data">
-                <div className="employee-data-line">
-                  <span>{t("Telefon")}</span>
-                  <strong>{employee.phone || t("Keine Telefonnummer hinterlegt")}</strong>
-                </div>
-                <div className="employee-data-line">
-                  <span>EUR/h</span>
-                  <strong>{employee.hourly_rate}</strong>
+                <div className="employee-list-meta">
+                  <span>{employee.phone || t("Keine Telefonnummer hinterlegt")}</span>
+                  <span>EUR/h {employee.hourly_rate}</span>
                 </div>
               </div>
-              <div className="employee-access-row">
-                <div className="employee-access-head">
-                  <ShieldCheck size={16} />
-                  <strong>{t("Systemzugang")}</strong>
-                </div>
+              <div className="employee-list-access">
+                <strong>{t("Systemzugang")}</strong>
                 <span>{employee.user ? `${employee.user.email} · ${translateText(employee.user.role.name)} · ${employee.user.is_active ? t("aktiv") : t("deaktiviert")}` : t("Kein Zugang angelegt")}</span>
               </div>
-              <div className="card-actions">
+              <div className="employee-list-status">
+                <ShieldCheck size={16} />
+                <span className="badge badge-neutral">{employee.status === "active" ? t("Aktiv") : t("Archiv")}</span>
+              </div>
+              <div className="employee-list-actions">
                 <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(employee)}><Pencil size={16} />{t("Bearbeiten")}</button>
                 {employee.user ? (
                   <button className="btn btn-ghost btn-sm" type="button" onClick={() => toggleAccess(employee, !employee.user?.is_active)}>

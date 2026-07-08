@@ -109,23 +109,25 @@ export function ReportComments({ reportId }: { reportId: number }) {
           {t("Kommentar speichern")}
         </button>
       </form>
-      <div className="activity-list">
+      <div className="activity-list activity-list-rows">
         {activity.length ? (
           activity.map((item) => {
             const Icon = item.kind === "comment" ? MessageSquareText : toneIcon[item.tone];
             return (
-              <article className={`activity-card ${item.tone}`} key={item.id}>
-                <div className="activity-card-head">
+              <article className={`activity-row ${item.tone}`} key={item.id}>
+                <div className="activity-row-main">
                   <div className="activity-title-row">
                     <span className={`activity-icon ${item.tone}`}>
                       <Icon size={15} />
                     </span>
-                    <strong>{translateText(item.title)}</strong>
+                    <div className="stack compact-stack">
+                      <strong>{translateText(item.title)}</strong>
+                      {item.author ? <div className="comment-meta">{item.author.full_name} · {translateText(item.author.role.name)}</div> : null}
+                    </div>
                   </div>
-                  <span className="text-muted">{formatDateTime(item.created_at)}</span>
+                  {item.body ? <p>{translateText(item.body)}</p> : null}
                 </div>
-                {item.author ? <div className="comment-meta">{item.author.full_name} · {translateText(item.author.role.name)}</div> : null}
-                {item.body ? <p>{translateText(item.body)}</p> : null}
+                <span className="text-muted activity-row-time">{formatDateTime(item.created_at)}</span>
               </article>
             );
           })

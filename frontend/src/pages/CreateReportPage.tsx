@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useI18n } from "../hooks/useI18n";
 import { useToast } from "../hooks/useToast";
-import { formatHours } from "../lib/format";
+import { formatHours, toLocalIsoDate } from "../lib/format";
 import { api } from "../services/api";
 import { ActiveAssignment } from "../types/api";
 
@@ -21,7 +21,7 @@ export function CreateReportPage() {
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState({
-    report_date: new Date().toISOString().slice(0, 10),
+    report_date: toLocalIsoDate(new Date()),
     work_plan_item_id: "",
     start_time: "08:00",
     end_time: "16:30",

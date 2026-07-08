@@ -4,11 +4,13 @@ import { Link } from "react-router-dom";
 
 import { useI18n } from "../hooks/useI18n";
 import { StatusBadge } from "../components/StatusBadge";
+import { toLocalIsoDate } from "../lib/format";
 import { api } from "../services/api";
 import { ConstructionObject, Crew, CrewMember, Employee } from "../types/api";
 import { useToast } from "../hooks/useToast";
 
 const crewFormDefaults = { name: "", specialization: "Elektroinstallation", foreman_employee_id: "", current_object_id: "" };
+const specializationPresets = ["Elektroinstallation", "Stahlbaumontage", "Sanitäranschlüsse"];
 
 function activeMembers(crew: Crew) {
   return crew.members.filter((member) => member.is_active);
@@ -29,7 +31,8 @@ export function CrewsPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [objects, setObjects] = useState<ConstructionObject[]>([]);
   const [form, setForm] = useState(crewFormDefaults);
-  const [pickerCrewId, setPickerCrewId] = useState<number | null>(null);
+  const [managingCrewId, setManagingCrewId] = useState<number | null>(null);
+  const [memberDrafts, setMemberDrafts] = useState<Record<number, string>>({});
   const [editingCrew, setEditingCrew] = useState<Crew | null>(null);
   const [editForm, setEditForm] = useState(crewFormDefaults);
   const [formError, setFormError] = useState("");
@@ -40,6 +43,28 @@ export function CrewsPage() {
     const narrowed = active.filter((employee) => /polier|bauleit|vorarbeit|foreman|lead/i.test(employee.position));
     return narrowed.length ? narrowed : active;
   }, [employees]);
+
+  const specializationOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...specializationPresets,
+          ...crews.map((crew) => crew.specialization).filter(Boolean),
+          form.specialization,
+          editForm.specialization,
+        ]),
+      ),
+    [crews, editForm.specialization, form.specialization],
+  );
+
+  const managingCrew = useMemo(() => crews.find((crew) => crew.id === managingCrewId) || null, [crews, managingCrewId]);
+  const managingMembers = useMemo(() => (managingCrew ? activeMembers(managingCrew) : []), [managingCrew]);
+  const availableManagingEmployees = useMemo(() => {
+    if (!managingCrew) return [];
+    const assignedEmployeeIds = new Set(managingMembers.map((member) => member.employee_id));
+    return employees.filter((employee) => !assignedEmployeeIds.has(employee.id));
+  }, [employees, managingCrew, managingMembers]);
+  const managingMemberDraft = managingCrew ? memberDrafts[managingCrew.id] || String(availableManagingEmployees[0]?.id || "") : "";
 
   function load() {
     Promise.all([
@@ -99,10 +124,10 @@ export function CrewsPage() {
         crew_id: crewId,
         employee_id: employeeId,
         role_in_crew: "Mitarbeiter",
-        joined_at: new Date().toISOString().slice(0, 10),
+        joined_at: toLocalIsoDate(new Date()),
         is_active: true,
       });
-      setPickerCrewId(null);
+      setMemberDrafts((current) => ({ ...current, [crewId]: "" }));
       pushToast({
         tone: "success",
         title: previousCrew ? t("Mitarbeiter verschoben") : t("Mitarbeiter hinzugefugt"),
@@ -169,7 +194,7 @@ export function CrewsPage() {
         </div>
         <form className="inline-form" onSubmit={createCrew}>
           <label className="field">{t("Teamname")}<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Team Berlin Ost" required /></label>
-          <label className="field">{t("Schwerpunkt")}<input value={form.specialization} onChange={(event) => setForm({ ...form, specialization: event.target.value })} required /></label>
+          <label className="field">{t("Schwerpunkt")}<select value={form.specialization} onChange={(event) => setForm({ ...form, specialization: event.target.value })}>{specializationOptions.map((option) => <option key={option} value={option}>{translateText(option)}</option>)}</select></label>
           <label className="field">{t("Polier")}<select value={form.foreman_employee_id} onChange={(event) => setForm({ ...form, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
           <label className="field">{t("Aktuelles Projekt")}<select value={form.current_object_id} onChange={(event) => setForm({ ...form, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{translateText(object.name)}</option>)}</select></label>
           <button className="btn btn-primary" type="submit">{t("Team anlegen")}</button>
@@ -180,7 +205,6 @@ export function CrewsPage() {
       <div className="cards-grid">
         {crews.map((crew) => {
           const members = activeMembers(crew);
-          const availableEmployees = employees.filter((employee) => !members.some((member) => member.employee_id === employee.id));
           return (
             <article className="entity-card crew-card" key={crew.id}>
               <div className="report-item-top"><strong>{translateText(crew.name)}</strong><StatusBadge status={crew.status} /></div>
@@ -189,25 +213,26 @@ export function CrewsPage() {
                 <p>{t("Projekt")}: {crew.current_object ? <Link className="inline-link" to={`/admin/objects/${crew.current_object.id}`}>{translateText(crew.current_object.name)}</Link> : t("nicht zugeordnet")}</p>
                 <p>{t("Polier")}: {crew.foreman ? `${crew.foreman.first_name} ${crew.foreman.last_name}` : t("offen")}</p>
               </div>
-              <div className="crew-member-stack">
+              <div className="crew-member-summary">
                 <div className="crew-inline-picker-toggle">
-                  <span className="crew-members-label">{t("Teammitglieder")}</span>
-                  <button className="icon-btn" type="button" aria-label={t("Mitarbeiter hinzufugen")} onClick={() => setPickerCrewId((current) => current === crew.id ? null : crew.id)}>
-                    {pickerCrewId === crew.id ? <X size={18} /> : <Plus size={18} />}
+                  <div className="compact-stack">
+                    <span className="crew-members-label">{t("Teammitglieder")}</span>
+                    <strong className="crew-member-count">{members.length} {t("Mitarbeiter")}</strong>
+                  </div>
+                  <button className="icon-btn" type="button" aria-label={t("Mitarbeiter hinzufugen")} onClick={() => setManagingCrewId(crew.id)}>
+                    <Plus size={18} />
                   </button>
                 </div>
-                {members.map((member) => (
-                  <div className="crew-member-row" key={member.id}>
-                    <div className="crew-member-copy">
-                      <strong>{member.employee?.first_name} {member.employee?.last_name}</strong>
-                      <span>{translateText(member.role_in_crew)}</span>
-                    </div>
-                    <button className="member-remove" type="button" aria-label={t("{name} aus dem Team entfernen?", { name: `${member.employee?.first_name} ${member.employee?.last_name}` })} onClick={() => removeMember(member)}>
-                      <Trash2 size={14} />
-                    </button>
+                {members.length ? (
+                  <div className="crew-member-preview-list">
+                    {members.slice(0, 2).map((member) => (
+                      <div className="crew-member-preview-item" key={member.id}>
+                        <strong>{member.employee?.first_name} {member.employee?.last_name}</strong>
+                        <span>{translateText(member.employee?.position || member.role_in_crew)}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                {members.length === 0 ? <p className="helper">{t("Noch keine Teammitglieder hinterlegt")}</p> : null}
+                ) : <p className="helper">{t("Noch keine Teammitglieder hinterlegt")}</p>}
               </div>
               <div className="crew-card-actions">
                 <div className="card-actions">
@@ -215,24 +240,77 @@ export function CrewsPage() {
                   {crew.status !== "archived" ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => archiveCrew(crew)}><Archive size={16} />{t("Archivieren")}</button> : null}
                 </div>
               </div>
-              {pickerCrewId === crew.id ? (
-                <div className="member-picker">
-                  <strong>{t("Mitarbeiter hinzufugen")}</strong>
-                  <div className="member-picker-grid">
-                    {availableEmployees.map((employee) => (
-                      <button className="member-picker-card" key={employee.id} type="button" onClick={() => addMember(crew.id, employee.id)}>
-                        <strong>{employee.first_name} {employee.last_name}</strong>
-                        <span>{translateText(employee.position)}</span>
-                      </button>
-                    ))}
-                    {availableEmployees.length === 0 ? <p className="helper">{t("Alle verfügbaren Mitarbeiter sind diesem Team bereits zugeordnet.")}</p> : null}
-                  </div>
-                </div>
-              ) : null}
             </article>
           );
         })}
       </div>
+
+      {managingCrew ? (
+        <div className="modal-backdrop" onClick={() => setManagingCrewId(null)} role="presentation">
+          <section className="modal-card wide-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="section-head">
+              <div>
+                <h3 className="section-title">{t("Teammitglieder")}</h3>
+                <p className="section-subtitle">{translateText(managingCrew.name)} · {translateText(managingCrew.specialization)}</p>
+              </div>
+              <button className="icon-btn" type="button" aria-label={t("Schliessen")} onClick={() => setManagingCrewId(null)}><X size={18} /></button>
+            </div>
+            <div className="crew-member-manager">
+              <section className="crew-member-manager-panel stack">
+                <div>
+                  <h4 className="section-title">{t("Mitarbeiter")}</h4>
+                  <p className="section-subtitle">{managingMembers.length} {t("Mitarbeiter")}</p>
+                </div>
+                {managingMembers.length ? (
+                  <div className="crew-member-manager-list">
+                    {managingMembers.map((member) => (
+                      <div className="crew-member-row" key={member.id}>
+                        <div className="crew-member-copy">
+                          <strong>{member.employee?.first_name} {member.employee?.last_name}</strong>
+                          <span>{translateText(member.employee?.position || member.role_in_crew)}</span>
+                        </div>
+                        <button className="member-remove" type="button" aria-label={t("{name} aus dem Team entfernen?", { name: `${member.employee?.first_name} ${member.employee?.last_name}` })} onClick={() => removeMember(member)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : <div className="empty-state compact-empty"><strong>{t("Noch keine Teammitglieder hinterlegt")}</strong></div>}
+              </section>
+
+              <section className="crew-member-manager-panel stack">
+                <div>
+                  <h4 className="section-title">{t("Mitarbeiter hinzufugen")}</h4>
+                  {availableManagingEmployees.length === 0 ? <p className="section-subtitle">{t("Alle verfügbaren Mitarbeiter sind diesem Team bereits zugeordnet.")}</p> : null}
+                </div>
+                <div className="crew-member-toolbar">
+                  <label className="field">
+                    {t("Mitarbeiter")}
+                    <select
+                      value={managingMemberDraft}
+                      onChange={(event) => setMemberDrafts((current) => ({ ...current, [managingCrew.id]: event.target.value }))}
+                    >
+                      {availableManagingEmployees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.first_name} {employee.last_name} · {translateText(employee.position)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button className="btn btn-primary" disabled={!availableManagingEmployees.length || !managingMemberDraft} type="button" onClick={() => addMember(managingCrew.id, Number(managingMemberDraft))}>
+                    <Plus size={16} />
+                    {t("Mitarbeiter hinzufugen")}
+                  </button>
+                </div>
+                {availableManagingEmployees.length === 0 ? <p className="helper">{t("Alle verfügbaren Mitarbeiter sind diesem Team bereits zugeordnet.")}</p> : null}
+              </section>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" type="button" onClick={() => setManagingCrewId(null)}>{t("Schliessen")}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {editingCrew ? (
         <div className="modal-backdrop" onClick={() => setEditingCrew(null)} role="presentation">
@@ -246,7 +324,7 @@ export function CrewsPage() {
             </div>
             <form className="stack" onSubmit={saveCrew}>
               <label className="field">{t("Teamname")}<input value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} required /></label>
-              <label className="field">{t("Schwerpunkt")}<input value={editForm.specialization} onChange={(event) => setEditForm({ ...editForm, specialization: event.target.value })} required /></label>
+              <label className="field">{t("Schwerpunkt")}<select value={editForm.specialization} onChange={(event) => setEditForm({ ...editForm, specialization: event.target.value })}>{specializationOptions.map((option) => <option key={option} value={option}>{translateText(option)}</option>)}</select></label>
               <div className="field-row">
                 <label className="field">{t("Polier")}<select value={editForm.foreman_employee_id} onChange={(event) => setEditForm({ ...editForm, foreman_employee_id: event.target.value })}>{foremanCandidates.map((employee) => <option key={employee.id} value={employee.id}>{employee.first_name} {employee.last_name}</option>)}</select></label>
                 <label className="field">{t("Projekt")}<select value={editForm.current_object_id} onChange={(event) => setEditForm({ ...editForm, current_object_id: event.target.value })}>{objects.map((object) => <option key={object.id} value={object.id}>{translateText(object.name)}</option>)}</select></label>

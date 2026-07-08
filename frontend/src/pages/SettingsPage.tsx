@@ -17,7 +17,7 @@ export function SettingsPage({ mobile = false }: { mobile?: boolean }) {
         : t("Mitarbeiter erfassen Berichte, prüfen den Kalender und senden Medien vom Einsatz.");
 
   const content = (
-    <div className="settings-grid">
+    <div className={`settings-grid ${mobile ? "settings-grid-mobile" : ""}`}>
       <section className="summary-card settings-card settings-account-card">
         <div className="settings-card-head">
           <div className="settings-avatar" aria-hidden="true">
@@ -100,7 +100,7 @@ export function SettingsPage({ mobile = false }: { mobile?: boolean }) {
           <h1>{t("Einstellungen")}</h1>
           <p>{t("Persönliche Einstellungen und Sprache fur diese Rolle.")}</p>
         </header>
-        <main className="mobile-content settings-page-content">{content}</main>
+      <main className="mobile-content settings-page-content settings-page-content-mobile">{content}</main>
       </>
     );
   }
