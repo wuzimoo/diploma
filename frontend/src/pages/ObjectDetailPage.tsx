@@ -156,7 +156,7 @@ export function ObjectDetailPage() {
           </div>
           <p>{translateText(summary.object.description || summary.object.work_scope)}</p>
         </div>
-        <div className="object-progress-card">
+        <div className="object-hero-progress">
           <div className="progress-ring" style={{ "--progress": `${planPercent}%` } as CSSProperties} aria-label={t("Fortschritt {percent}%", { percent: planPercent })}>
             <div className="progress-ring-inner">
               <strong>{planPercent}%</strong>

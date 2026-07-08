@@ -1,28 +1,45 @@
 let locale = "de-DE";
+const plainDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 function asDate(value: Date | string) {
   if (value instanceof Date) return value;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  if (plainDatePattern.test(value)) {
     const [year, month, day] = value.split("-").map(Number);
     return new Date(year, month - 1, day);
   }
   return new Date(value);
 }
 
+function asUtcDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+export function toLocalIsoDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function formatDate(value: Date | string) {
+  const plainDate = typeof value === "string" && plainDatePattern.test(value) ? asUtcDate(value) : null;
   return new Intl.DateTimeFormat(locale, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(asDate(value));
+    ...(plainDate ? { timeZone: "UTC" } : {}),
+  }).format(plainDate || asDate(value));
 }
 
 export function formatLongDate(value: Date | string) {
+  const plainDate = typeof value === "string" && plainDatePattern.test(value) ? asUtcDate(value) : null;
   return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(asDate(value));
+    ...(plainDate ? { timeZone: "UTC" } : {}),
+  }).format(plainDate || asDate(value));
 }
 
 export function formatDateTime(value: Date | string) {

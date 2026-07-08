@@ -38,6 +38,37 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   in_progress: "In Arbeit",
 };
 
+const DEMO_TEXT_ALIASES: Record<string, string> = {
+  "Client demo workspace": "Kundendemo-Workspace",
+  "Operational control for construction companies": "Operative Steuerung fur Bauunternehmen",
+  Employees: "Mitarbeiter",
+  Employee: "Mitarbeiter",
+  Installer: "Monteur",
+  Electrician: "Elektriker",
+  "Plumbing installer": "Sanitärinstallateur",
+  Management: "Geschäftsleitung",
+  "Team Electrical East": "Team Elektro Ost",
+  "Team Assembly Potsdam": "Team Montage Potsdam",
+  "Team Berlin Mitte": "Team Berlin Mitte",
+  "Berlin East - New Build C": "Berlin Ost - Neubau C",
+  "Berlin Mitte - House A": "Berlin Mitte - Haus A",
+  "Potsdam - Hall 2": "Potsdam - Halle 2",
+  "Brandenburg - West Site": "Brandenburg - Standort West",
+  "Electrical installation": "Elektroinstallation",
+  "Steel structure assembly": "Stahlbaumontage",
+  "No team members stored yet": "Noch keine Teammitglieder hinterlegt",
+  "Media file added": "Mediendatei hinzugefügt",
+  "Report published": "Bericht veröffentlicht",
+  "Sent to foreman": "An Polier gesendet",
+  "Current report status: sent to foreman.": "Aktueller Berichtsstatus: an den Polier gesendet.",
+  "Current report status: approved by foreman.": "Aktueller Berichtsstatus: vom Polier freigegeben.",
+  "Current report status: finally approved.": "Aktueller Berichtsstatus: final freigegeben.",
+  "Current report status: rejected.": "Aktueller Berichtsstatus: abgelehnt.",
+  "Current report status: sent back for rework.": "Aktueller Berichtsstatus: zur Nacharbeit zurückgegeben.",
+  "New construction project Berlin East - House C with sections A-C.": "Neubauprojekt Berlin Ost - Haus C mit den Bauabschnitten A-C.",
+  "Sanitary works, temporary power supply, final connections and team coordination.": "Sanitär, temporäre Stromversorgung, Endanschlüsse und Teamkoordination.",
+};
+
 const TRANSLATIONS: Record<Exclude<AppLanguage, "de">, Record<string, string>> = {
   en: {
     "BauPilot Demo": "BauPilot Demo",
@@ -405,6 +436,7 @@ const TRANSLATIONS: Record<Exclude<AppLanguage, "de">, Record<string, string>> =
     "Geplant": "Planned",
     "In Arbeit": "In progress",
     "Eingereicht": "Submitted",
+    "Geschäftsleitung": "Management",
     "Polier / Projektleitung": "Foreman / project lead",
     "Elektriker": "Electrician",
     "Monteur": "Installer",
@@ -861,32 +893,34 @@ function interpolate(template: string, vars?: Record<string, string | number>) {
 }
 
 function translatePattern(language: AppLanguage, value: string): string {
+  const canonical = DEMO_TEXT_ALIASES[value] || value;
   const dict = language === "de" ? {} : TRANSLATIONS[language];
-  const exact = dict[value];
+  const exact = dict[canonical];
   if (exact) return exact;
+  if (language === "de" && canonical !== value) return canonical;
 
-  const fileMatch = value.match(/^Datei "(.+)" wurde an den Bericht angehängt\.$/);
+  const fileMatch = canonical.match(/^Datei "(.+)" wurde an den Bericht angehängt\.$/);
   if (fileMatch) {
     return interpolate(dict['Datei "{file}" wurde an den Bericht angehängt.'] || 'Datei "{file}" wurde an den Bericht angehängt.', {
       file: fileMatch[1],
     });
   }
 
-  const reportMatch = value.match(/^Tagesbericht (.+) wurde erstellt\.$/);
+  const reportMatch = canonical.match(/^Tagesbericht (.+) wurde erstellt\.$/);
   if (reportMatch) {
     return interpolate(dict["Tagesbericht {report} wurde erstellt."] || "Tagesbericht {report} wurde erstellt.", {
       report: reportMatch[1],
     });
   }
 
-  const mediaMatch = value.match(/^(\d+) Datei(en)?: (.+)$/);
+  const mediaMatch = canonical.match(/^(\d+) Datei(en)?: (.+)$/);
   if (mediaMatch) {
     const count = Number(mediaMatch[1]);
     const template = count === 1 ? "{count} Datei: {files}" : "{count} Dateien: {files}";
     return interpolate(dict[template] || template, { count, files: mediaMatch[3] });
   }
 
-  return value;
+  return canonical;
 }
 
 interface I18nContextValue {

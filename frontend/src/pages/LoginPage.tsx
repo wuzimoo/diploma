@@ -84,9 +84,9 @@ export function LoginPage() {
             </button>
           </form>
           <div className="demo-logins">
-            <button type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>{t("Admin")}</button>
-            <button type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>{t("Polier")}</button>
-            <button type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>{t("Mitarbeiter")}</button>
+            <button className="demo-login-button" type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>{t("Admin")}</button>
+            <button className="demo-login-button" type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>{t("Polier")}</button>
+            <button className="demo-login-button" type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>{t("Mitarbeiter")}</button>
           </div>
         </section>
       </div>

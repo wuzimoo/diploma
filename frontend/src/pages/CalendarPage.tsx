@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
 import { useI18n } from "../hooks/useI18n";
-import { formatHours, formatLongDate, formatMonthYear, reportCountLabel } from "../lib/format";
+import { formatHours, formatLongDate, formatMonthYear, reportCountLabel, toLocalIsoDate } from "../lib/format";
 import { api } from "../services/api";
 import { CalendarDay } from "../types/api";
 
@@ -17,12 +17,15 @@ function endOfMonth(value: Date) {
 }
 
 function toIsoDate(value: Date) {
-  return value.toISOString().slice(0, 10);
+  return toLocalIsoDate(value);
+}
+
+function toIsoFromParts(year: number, monthIndex: number, day: number) {
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function fromIsoDate(value: string) {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  return value.slice(0, 10);
 }
 
 function buildCalendarGrid(currentMonth: Date) {
@@ -35,7 +38,7 @@ function buildCalendarGrid(currentMonth: Date) {
     cells.push({ type: "empty" });
   }
   for (let day = 1; day <= monthEnd.getDate(); day += 1) {
-    cells.push({ type: "day", iso: toIsoDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)), day });
+    cells.push({ type: "day", iso: toIsoFromParts(currentMonth.getFullYear(), currentMonth.getMonth(), day), day });
   }
   while (cells.length % 7 !== 0) {
     cells.push({ type: "empty" });
@@ -71,9 +74,12 @@ export function CalendarPage() {
 
   useEffect(() => {
     api.get<CalendarDay[]>("/calendar/detailed", { params: monthRange }).then((response) => {
-      setRows(response.data);
+      setRows(response.data.map((row) => ({ ...row, date: fromIsoDate(row.date) })));
       const monthStart = monthRange.date_from;
-      setSelectedDate((current) => (current >= monthRange.date_from && current <= monthRange.date_to ? current : monthStart));
+      setSelectedDate((current) => {
+        const normalized = fromIsoDate(current);
+        return normalized >= monthRange.date_from && normalized <= monthRange.date_to ? normalized : monthStart;
+      });
     });
   }, [monthRange]);
 

@@ -194,9 +194,9 @@ h3,
 }
 
 .demo-logins {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
   padding-top: 2px;
 }
 
@@ -253,10 +253,13 @@ h3,
 }
 
 .demo-logins button {
-  border-radius: 999px;
-  padding: 8px 10px;
+  min-height: 44px;
+  border-radius: 18px;
+  padding: 10px 14px;
   background: var(--accent-soft);
-  border: 1px solid rgba(54, 83, 107, 0.12);
+  border: 1px solid rgba(197, 107, 55, 0.16);
+  white-space: nowrap;
+  justify-content: center;
 }
 
 .mobile-page {
@@ -1168,7 +1171,7 @@ textarea {
   color: #18212d;
 }
 
-.object-progress-card {
+.object-hero-progress {
   display: grid;
   justify-items: end;
   align-items: center;
@@ -1840,12 +1843,12 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .object-progress-card,
+  .object-hero-progress,
   .entity-card.object-progress-card {
     justify-items: stretch;
   }
 
-  .object-progress-card .progress-ring,
+  .object-hero-progress .progress-ring,
   .entity-card.object-progress-card .badge {
     justify-self: start;
   }
@@ -1898,15 +1901,15 @@ textarea {
   --text: #182026;
   --muted: #5e6764;
   --muted-strong: #36414a;
-  --accent: #c96a35;
-  --accent-dark: #a95628;
-  --accent-soft: #f8e2d3;
+  --accent: #c56b37;
+  --accent-dark: #a85a2d;
+  --accent-soft: #f6dfcf;
   --success: #2d7c50;
   --warning: #a86c19;
   --danger: #bb4f39;
   --shadow: 0 24px 60px rgba(24, 32, 38, 0.08);
   --shadow-soft: 0 10px 24px rgba(24, 32, 38, 0.04);
-  --ring: 0 0 0 4px rgba(201, 106, 53, 0.14);
+  --ring: 0 0 0 4px rgba(197, 107, 55, 0.16);
   font-family: "Public Sans", "Segoe UI", sans-serif;
 }
 
@@ -2106,6 +2109,7 @@ h3,
   padding: 18px;
   gap: 16px;
   background: linear-gradient(180deg, rgba(249, 246, 240, 0.66) 0%, rgba(244, 239, 232, 0.36) 100%);
+  overflow-x: hidden;
 }
 
 .desktop-page {
@@ -2153,11 +2157,15 @@ h3,
   display: grid;
   place-items: center;
   border-radius: 18px;
-  background: linear-gradient(180deg, #42586e 0%, #31475c 100%);
-  color: #fff;
-  font-family: Archivo, sans-serif;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  background: transparent;
+  overflow: hidden;
+}
+
+.desktop-brand-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .brand h1 {
@@ -2317,17 +2325,18 @@ h3,
 }
 
 .btn {
-  min-height: 48px;
-  border-radius: 999px;
-  padding: 12px 18px;
+  min-height: 44px;
+  border-radius: 18px;
+  padding: 10px 16px;
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, #42586e 0%, #31475c 100%);
+  background: linear-gradient(180deg, #cf7644 0%, #b76334 100%);
+  box-shadow: 0 10px 24px rgba(197, 107, 55, 0.22);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(180deg, #364b5f 0%, #2a3e50 100%);
+  background: linear-gradient(180deg, #c26b39 0%, #ab5b2f 100%);
 }
 
 .btn-secondary {
@@ -2341,7 +2350,8 @@ h3,
 }
 
 .btn-sm {
-  min-height: 40px;
+  min-height: 38px;
+  padding: 8px 14px;
 }
 
 input,
@@ -2405,7 +2415,7 @@ textarea {
   color: var(--text);
 }
 
-.object-progress-card {
+.object-hero-progress {
   gap: 16px;
   border-radius: 26px;
 }
@@ -2629,19 +2639,423 @@ textarea {
   gap: 6px;
 }
 
+.settings-grid-mobile {
+  grid-template-columns: 1fr;
+}
+
+.settings-grid-mobile .settings-card,
+.settings-grid-mobile .settings-account-card {
+  grid-column: span 1;
+}
+
+.settings-grid-mobile .settings-card {
+  min-width: 0;
+}
+
+.settings-grid-mobile .settings-section-head,
+.settings-grid-mobile .settings-card-head {
+  min-width: 0;
+}
+
+.settings-grid-mobile .section-title {
+  font-size: 1.1rem;
+}
+
+.settings-grid-mobile .section-subtitle {
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.settings-page-content-mobile {
+  overflow-x: hidden;
+}
+
+.settings-page-content-mobile .settings-language-switcher {
+  align-items: flex-start;
+}
+
+.settings-page-content-mobile .settings-language-switcher,
+.settings-page-content-mobile .settings-pills,
+.settings-page-content-mobile .settings-meta-grid,
+.settings-page-content-mobile .settings-session-list {
+  min-width: 0;
+}
+
+.desktop-page {
+  min-height: 100vh;
+}
+
+.desktop-shell {
+  align-items: stretch;
+  height: calc(100vh - 36px);
+  overflow: hidden;
+}
+
+.desktop-main,
+.desktop-content,
+.calendar-board {
+  min-width: 0;
+}
+
+.desktop-header {
+  position: static;
+}
+
+.desktop-sidebar {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.desktop-main {
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.desktop-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+
+.entity-card.object-progress-card.analytics-progress-card {
+  grid-template-rows: auto 1fr auto auto;
+  height: 100%;
+}
+
+.entity-card.object-progress-card.analytics-progress-card .object-progress-head {
+  min-height: 78px;
+  align-items: start;
+}
+
+.entity-card.object-progress-card.analytics-progress-card .object-progress-title {
+  grid-template-rows: auto auto;
+  align-content: start;
+  min-height: 78px;
+  padding-top: 2px;
+}
+
+.entity-card.object-progress-card.analytics-progress-card .object-progress-title strong {
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.22;
+}
+
+.entity-card.object-progress-card.analytics-progress-card .object-progress-copy {
+  display: -webkit-box;
+  min-height: 4.35em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.dashboard-progress-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.objects-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: start;
+}
+
+.object-list-card {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+  gap: 14px;
+  height: 100%;
+}
+
+.object-list-head {
+  align-items: flex-start;
+}
+
+.object-list-title-wrap {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.object-list-title {
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.36;
+  white-space: nowrap;
+}
+
+.object-list-code,
+.object-list-address,
+.object-list-meta {
+  color: var(--muted);
+}
+
+.object-list-address {
+  display: block;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-list-description {
+  display: -webkit-box;
+  min-height: 4.4em;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted-strong);
+  line-height: 1.48;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.object-list-meta {
+  margin-top: auto;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-list {
+  display: grid;
+  gap: 12px;
+}
+
+.employee-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(215, 208, 194, 0.92);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(252, 250, 246, 0.84) 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+.employee-list-main,
+.employee-list-access {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.employee-list-title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.employee-list-title strong,
+.employee-list-access span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.employee-list-title strong {
+  white-space: nowrap;
+}
+
+.employee-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.employee-list-access {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.employee-list-access strong,
+.employee-list-status {
+  color: var(--muted-strong);
+}
+
+.employee-list-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+.employee-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.crew-card {
+  grid-template-rows: auto auto auto 1fr auto;
+  height: 100%;
+}
+
+.crew-member-summary {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.crew-member-count {
+  color: var(--muted-strong);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.crew-member-preview-list,
+.crew-member-manager-list {
+  display: grid;
+  gap: 10px;
+}
+
+.crew-member-preview-item {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(215, 208, 194, 0.92);
+  background: rgba(243, 238, 228, 0.72);
+}
+
+.crew-member-preview-item strong,
+.crew-member-preview-item span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crew-member-row {
+  border-radius: 18px;
+  background: rgba(243, 238, 228, 0.72);
+}
+
+.crew-member-copy {
+  min-width: 0;
+}
+
+.crew-member-copy strong,
+.crew-member-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crew-member-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.crew-member-toolbar .field {
+  margin: 0;
+}
+
+.crew-member-manager {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: 18px;
+}
+
+.crew-member-manager-panel {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(215, 208, 194, 0.92);
+  background: rgba(252, 250, 246, 0.92);
+}
+
+.activity-list-rows {
+  gap: 10px;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(215, 208, 194, 0.92);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.activity-row.success {
+  background: #f5fff8;
+  border-color: #c4e6cf;
+}
+
+.activity-row.warning {
+  background: #fff8ec;
+  border-color: #e8c678;
+}
+
+.activity-row.danger {
+  background: #fff0ee;
+  border-color: #e8aaa2;
+}
+
+.activity-row-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.activity-row .activity-title-row {
+  align-items: flex-start;
+}
+
+.activity-row p {
+  margin: 0;
+  color: var(--muted-strong);
+  line-height: 1.55;
+}
+
+.activity-row-time {
+  white-space: nowrap;
+}
+
 @media (max-width: 1100px) {
   .desktop-shell {
     grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
   }
 
   .desktop-sidebar {
     position: static;
     min-height: 0;
+    height: auto;
+    overflow: visible;
   }
 
   .settings-card,
   .settings-account-card {
     grid-column: span 12;
+  }
+
+  .dashboard-progress-grid,
+  .objects-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .crew-member-manager {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2654,9 +3068,32 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .demo-logins {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-list-row {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .employee-list-status,
+  .employee-list-actions {
+    justify-self: start;
+  }
+
+  .crew-member-toolbar {
+    grid-template-columns: 1fr;
+  }
+
   .employee-card,
   .crew-card {
     grid-template-rows: auto auto auto auto;
+  }
+
+  .dashboard-progress-grid,
+  .objects-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2692,5 +3129,58 @@ textarea {
   .settings-card,
   .settings-account-card {
     grid-column: span 1;
+  }
+}
+
+/* Targeted polish fixes */
+.settings-page {
+  gap: 28px;
+  padding-top: 8px;
+}
+
+.settings-page-content {
+  gap: 24px;
+}
+
+.settings-grid {
+  column-gap: 24px;
+  row-gap: 30px;
+  align-items: stretch;
+}
+
+.settings-account-card {
+  margin-bottom: 6px;
+}
+
+.demo-logins {
+  align-items: stretch;
+}
+
+.login-card .demo-logins button,
+.demo-logins button {
+  min-height: 48px;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .demo-logins {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .demo-logins {
+    grid-template-columns: 1fr;
+  }
+
+  .login-card .demo-logins button,
+  .demo-logins button {
+    height: 44px;
+    min-height: 44px;
   }
 }

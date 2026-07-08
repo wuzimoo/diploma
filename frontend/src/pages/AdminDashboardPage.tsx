@@ -130,13 +130,13 @@ export function AdminDashboardPage() {
           <strong>{t("Gesamtkosten: {amount}", { amount: formatCurrency(analytics?.expense_total || 0, 2) })}</strong>
           <span>{translateText(analytics?.expense_hint)}</span>
         </div>
-        <div className="cards-grid">
+        <div className="cards-grid dashboard-progress-grid">
           {analytics?.object_progress.map((item) => (
-            <Link className="entity-card object-progress-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
+            <Link className="entity-card object-progress-card analytics-progress-card" key={item.object_id} to={`/admin/objects/${item.object_id}`}>
               <div className="object-progress-head">
                 <div className="object-progress-title">
                   <span className="eyebrow">{t("Projekt")}</span>
-                  <strong>{translateText(item.object)}</strong>
+                  <strong title={translateText(item.object)}>{translateText(item.object)}</strong>
                 </div>
                 <StatusBadge status={item.status} />
               </div>

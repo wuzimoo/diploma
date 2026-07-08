@@ -15,7 +15,9 @@ export function AdminLayout() {
       <div className="desktop-shell">
         <aside className="desktop-sidebar">
           <div className="desktop-sidebar-brand">
-            <div className="desktop-brand-mark" aria-hidden="true">BP</div>
+            <div className="desktop-brand-mark" aria-hidden="true">
+              <img src="/baupilot-icon.png" alt="" />
+            </div>
             <div className="brand">
               <h1>{APP_NAME}</h1>
               <p>{translateText(user?.role.name) || t(APP_ROLE_FALLBACK)}</p>

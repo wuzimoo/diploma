@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { StatusBadge } from "../components/StatusBadge";
 import { useI18n } from "../hooks/useI18n";
-import { formatCurrency, formatDate } from "../lib/format";
+import { formatCurrency, formatDate, toLocalIsoDate } from "../lib/format";
 import { api } from "../services/api";
 import { ConstructionObject } from "../types/api";
 import { useToast } from "../hooks/useToast";
@@ -15,7 +15,7 @@ const objectDefaults = {
   city: "Berlin",
   address: "",
   client: "",
-  planned_start_date: new Date().toISOString().slice(0, 10),
+  planned_start_date: toLocalIsoDate(new Date()),
   planned_end_date: "",
   budget: "250000",
   description: "",
@@ -161,15 +161,20 @@ export function ObjectsPage() {
           <label className="field">{t("Status")}<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">{t("Alle")}</option><option value="active">{t("Aktiv")}</option><option value="planning">{t("In Planung")}</option><option value="archived">{t("Archiv")}</option></select></label>
           <div className="summary-card compact-summary"><span className="text-muted">{t("Gefunden")}</span><strong>{t("{count} Projekte", { count: objects.length })}</strong></div>
         </div>
-        <div className="cards-grid">
+        <div className="cards-grid objects-grid">
           {objects.map((object) => (
-            <article className="entity-card" key={object.id}>
-              <div className="report-item-top"><strong>{translateText(object.name)}</strong><StatusBadge status={object.status} /></div>
-              <span>{object.city} · {object.code}</span>
-              <p>{object.address}</p>
-              <p>{translateText(object.description || object.work_scope) || t("Noch keine Beschreibung hinterlegt")}</p>
+            <article className="entity-card object-list-card" key={object.id}>
+              <div className="report-item-top object-list-head">
+                <div className="object-list-title-wrap">
+                  <strong className="object-list-title" title={translateText(object.name)}>{translateText(object.name)}</strong>
+                  <span className="object-list-code">{object.city} · {object.code}</span>
+                </div>
+                <StatusBadge status={object.status} />
+              </div>
+              <p className="object-list-address">{object.address}</p>
+              <p className="object-list-description">{translateText(object.description || object.work_scope) || t("Noch keine Beschreibung hinterlegt")}</p>
               <div className="mini-progress"><i style={{ width: `${object.progress_percent || 0}%` }} /><span>{object.progress_percent || 0}%</span></div>
-              <small>{translateText(object.client) || t("Kein Kunde hinterlegt")} · {t("Start {date}", { date: object.planned_start_date || object.start_date ? formatDate(object.planned_start_date || object.start_date || "") : t("offen") })} · {formatCurrency(Number(object.budget || 0))}</small>
+              <small className="object-list-meta">{translateText(object.client) || t("Kein Kunde hinterlegt")} · {t("Start {date}", { date: object.planned_start_date || object.start_date ? formatDate(object.planned_start_date || object.start_date || "") : t("offen") })} · {formatCurrency(Number(object.budget || 0))}</small>
               <div className="card-actions">
                 <Link className="btn btn-secondary btn-sm" to={`/admin/objects/${object.id}`}>{t("Details")}</Link>
                 <button className="btn btn-secondary btn-sm" type="button" onClick={() => openEditor(object)}><Pencil size={16} />{t("Bearbeiten")}</button>
