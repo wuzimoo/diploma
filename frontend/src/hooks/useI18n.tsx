@@ -2,6 +2,7 @@ import { createContext, ReactNode, useContext, useEffect, useMemo, useState } fr
 
 import { APP_NAME } from "../lib/branding";
 import { setFormatLanguage } from "../lib/format";
+import { track } from "../lib/analytics";
 
 export type AppLanguage = "de" | "en" | "el";
 
@@ -942,7 +943,7 @@ function inferInitialLanguage(): AppLanguage {
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<AppLanguage>(() => inferInitialLanguage());
+  const [language, setLanguageState] = useState<AppLanguage>(() => inferInitialLanguage());
   setFormatLanguage(language);
 
   useEffect(() => {
@@ -960,7 +961,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     return {
       language,
-      setLanguage,
+      setLanguage(nextLanguage) {
+        if (nextLanguage === language) {
+          return;
+        }
+
+        track("language_changed", {
+          from: language,
+          to: nextLanguage,
+        });
+        setLanguageState(nextLanguage);
+      },
       t,
       translateText(value) {
         if (!value) return "";
