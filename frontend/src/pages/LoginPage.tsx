@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
 import { useI18n } from "../hooks/useI18n";
+import { track } from "../lib/analytics";
 import { APP_LOGIN_CHIP, APP_LOGIN_COPY, APP_LOGIN_HEADLINE, APP_NAME } from "../lib/branding";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 
@@ -23,8 +24,14 @@ export function LoginPage() {
     event.preventDefault();
     setLoading(true);
     setError("");
+    track("login_started", {
+      has_email: Boolean(email.trim()),
+    });
     try {
       const loggedUser = await login(email, password);
+      track("demo_login_completed", {
+        role: loggedUser.role.code,
+      });
       navigate(loggedUser.role.code === "worker" ? "/worker" : "/admin", { replace: true });
     } catch {
       setError(t("Anmeldung fehlgeschlagen. Bitte E-Mail, Passwort und API-Verbindung prüfen."));
@@ -84,9 +91,39 @@ export function LoginPage() {
             </button>
           </form>
           <div className="demo-logins">
-            <button className="demo-login-button" type="button" onClick={() => { setEmail("admin@baupilot.demo"); setPassword("Admin12345"); }}>{t("Admin")}</button>
-            <button className="demo-login-button" type="button" onClick={() => { setEmail("foreman@baupilot.demo"); setPassword("Foreman12345"); }}>{t("Polier")}</button>
-            <button className="demo-login-button" type="button" onClick={() => { setEmail("worker@baupilot.demo"); setPassword("Worker12345"); }}>{t("Mitarbeiter")}</button>
+            <button
+              className="demo-login-button"
+              type="button"
+              onClick={() => {
+                track("demo_admin_clicked", { role: "admin" });
+                setEmail("admin@baupilot.demo");
+                setPassword("Admin12345");
+              }}
+            >
+              {t("Admin")}
+            </button>
+            <button
+              className="demo-login-button"
+              type="button"
+              onClick={() => {
+                track("demo_role_selected", { role: "foreman" });
+                setEmail("foreman@baupilot.demo");
+                setPassword("Foreman12345");
+              }}
+            >
+              {t("Polier")}
+            </button>
+            <button
+              className="demo-login-button"
+              type="button"
+              onClick={() => {
+                track("demo_role_selected", { role: "worker" });
+                setEmail("worker@baupilot.demo");
+                setPassword("Worker12345");
+              }}
+            >
+              {t("Mitarbeiter")}
+            </button>
           </div>
         </section>
       </div>

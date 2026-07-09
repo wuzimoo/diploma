@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
+import { track } from "../lib/analytics";
 import { api, authInvalidEvent, clearStoredAuth, tokenStorageKey } from "../services/api";
 import { User } from "../types/api";
 
@@ -69,14 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(tokenStorageKey, tokenResponse.data.access_token);
           const me = await api.get<User>("/auth/me");
           setUser(me.data);
+          track("login_completed", {
+            role: me.data.role.code,
+          });
           return me.data;
         } catch (error) {
           clearStoredAuth(false);
           setUser(null);
+          track("login_failed");
           throw error;
         }
       },
       logout() {
+        track("logout_clicked", {
+          role: user?.role.code,
+        });
         clearStoredAuth(false);
         setUser(null);
       }
