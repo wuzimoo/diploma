@@ -314,7 +314,10 @@ def _normalize_existing_demo_records(
             )
             key = (event.event_type, normalized_title, normalized_body)
             if key in seen_events:
-                db.delete(event)
+                if event in db.new:
+                    report.events.remove(event)
+                else:
+                    db.delete(event)
                 continue
             seen_events.add(key)
             event.title = normalized_title
